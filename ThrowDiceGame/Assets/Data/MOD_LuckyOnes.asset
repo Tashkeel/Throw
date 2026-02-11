@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8b823c7a7741a5640b49a175843f9990, type: 3}
+  m_Name: MOD_LuckyOnes
+  m_EditorClassIdentifier: Assembly-CSharp::ModifierData
+  _displayName: Lucky Ones
+  _description: Dice showing 1 are worth 10.
+  _icon: {fileID: 0}
+  _cost: 50
+  _modifierPrefab: {fileID: 840051976860877, guid: 452a23b5005ea3a4cb6ad3218e5c4565, type: 3}
