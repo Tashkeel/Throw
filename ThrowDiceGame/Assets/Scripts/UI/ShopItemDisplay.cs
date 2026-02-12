@@ -1,35 +1,31 @@
 using System;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 /// <summary>
 /// UI display for a single shop item (modifier or enhancement).
+/// Handles click detection directly via IPointerClickHandler.
 /// </summary>
-public class ShopItemDisplay : MonoBehaviour
+public class ShopItemDisplay : MonoBehaviour, IPointerClickHandler
 {
     [Header("UI Elements")]
     [SerializeField] private TextMeshProUGUI _nameText;
     [SerializeField] private TextMeshProUGUI _descriptionText;
     [SerializeField] private TextMeshProUGUI _costText;
     [SerializeField] private Image _iconImage;
-    [SerializeField] private Button _purchaseButton;
     [SerializeField] private Image _backgroundImage;
 
     [Header("Colors")]
     [SerializeField] private Color _affordableColor = Color.white;
     [SerializeField] private Color _unaffordableColor = new Color(0.7f, 0.7f, 0.7f);
+    [SerializeField] private Color _soldOutColor = new Color(0.5f, 0.5f, 0.5f, 0.5f);
 
     private Action _onPurchase;
     private Func<bool> _canAfford;
-
-    private void Awake()
-    {
-        if (_purchaseButton != null)
-        {
-            _purchaseButton.onClick.AddListener(OnPurchaseClicked);
-        }
-    }
+    private bool _isAffordable;
+    private bool _isSoldOut;
 
     /// <summary>
     /// Initializes the display for a modifier.
@@ -83,29 +79,37 @@ public class ShopItemDisplay : MonoBehaviour
     }
 
     /// <summary>
+    /// Marks this item as sold out, preventing further interaction.
+    /// </summary>
+    public void MarkSoldOut()
+    {
+        _isSoldOut = true;
+        _isAffordable = false;
+
+        if (_backgroundImage != null)
+            _backgroundImage.color = _soldOutColor;
+
+        if (_costText != null)
+            _costText.text = "SOLD";
+    }
+
+    /// <summary>
     /// Updates the visual state based on affordability.
     /// </summary>
     public void UpdateAffordability()
     {
-        bool canAfford = _canAfford?.Invoke() ?? false;
+        if (_isSoldOut) return;
 
-        if (_purchaseButton != null)
-            _purchaseButton.interactable = canAfford;
+        _isAffordable = _canAfford?.Invoke() ?? false;
 
         if (_backgroundImage != null)
-            _backgroundImage.color = canAfford ? _affordableColor : _unaffordableColor;
+            _backgroundImage.color = _isAffordable ? _affordableColor : _unaffordableColor;
     }
 
-    private void OnPurchaseClicked()
+    public void OnPointerClick(PointerEventData eventData)
     {
+        if (!_isAffordable || _isSoldOut) return;
+
         _onPurchase?.Invoke();
-    }
-
-    private void OnDestroy()
-    {
-        if (_purchaseButton != null)
-        {
-            _purchaseButton.onClick.RemoveListener(OnPurchaseClicked);
-        }
     }
 }

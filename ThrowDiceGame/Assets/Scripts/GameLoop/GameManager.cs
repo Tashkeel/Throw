@@ -22,8 +22,8 @@ public class GameManager : MonoBehaviour
 
     [Header("Currency")]
     [SerializeField]
-    [Tooltip("Money earned per remaining throw after a successful round")]
-    private int _moneyPerThrowRemaining = 10;
+    [Tooltip("Money earned per remaining die (hand + inventory) after a successful round")]
+    private int _moneyPerDieRemaining = 10;
 
     [Header("References")]
     [SerializeField]
@@ -99,12 +99,12 @@ public class GameManager : MonoBehaviour
         _scoreTracker = new ScoreTracker(_baseScoreGoal, _scoreIncreasePerRound);
 
         // Create currency manager
-        _currencyManager = new CurrencyManager(_moneyPerThrowRemaining);
+        _currencyManager = new CurrencyManager(_moneyPerDieRemaining);
 
         // Initialize managers
         if (_roundManager != null)
         {
-            _roundManager.Initialize(_inventory, _scoreTracker);
+            _roundManager.Initialize(_inventory, _scoreTracker, _currencyManager);
             _roundManager.OnRoundEnded += HandleRoundEnded;
         }
 
@@ -127,9 +127,9 @@ public class GameManager : MonoBehaviour
         // Initialize inventory with starting dice
         if (_defaultDiceData == null)
         {
-            _defaultDiceData = DiceData.CreateStandardDie();
+            _defaultDiceData = DiceData.CreateDefaultDie();
         }
-        _inventory.Initialize(_defaultDiceData, _startingDiceCount);
+        _inventory.Initialize(DiceData.CreateDie(_defaultDiceData), _startingDiceCount);
 
         Debug.Log($"Starting with {_inventory.TotalDiceCount} dice");
 
@@ -163,11 +163,11 @@ public class GameManager : MonoBehaviour
     {
         if (won)
         {
-            // Award money for remaining throws
-            int throwsRemaining = _roundManager.MaxThrows - _roundManager.CurrentThrow;
-            if (throwsRemaining > 0)
+            // Award money for remaining dice (hand + inventory), captured before hand was returned
+            int remainingDice = _roundManager.RemainingDiceAtRoundEnd;
+            if (remainingDice > 0)
             {
-                _currencyManager.AwardRoundBonus(throwsRemaining);
+                _currencyManager.AwardRoundBonus(remainingDice);
             }
 
             // Go to shop before next round

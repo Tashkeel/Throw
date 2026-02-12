@@ -53,7 +53,7 @@ public class ScoringPanel : UIPanel
         {
             if (_resultText != null) _resultText.text = "GOAL REACHED!";
             if (_messageText != null) _messageText.text = "Round Complete!";
-            if (_continueButtonText != null) _continueButtonText.text = "Continue to Shop";
+            if (_continueButtonText != null) _continueButtonText.text = "Shop";
         }
         else if (currentThrow >= maxThrows)
         {

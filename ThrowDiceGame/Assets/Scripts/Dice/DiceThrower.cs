@@ -19,7 +19,7 @@ public class DiceThrower : MonoBehaviour
 
     [SerializeField]
     [Tooltip("The die prefab to instantiate")]
-    private Die _diePrefab;
+    private GameplayDie _diePrefab;
 
     [SerializeField]
     [Tooltip("Number of dice to throw")]
@@ -40,8 +40,9 @@ public class DiceThrower : MonoBehaviour
     [Tooltip("Random torque applied to dice for natural tumbling")]
     private float _randomTorque = 10f;
 
-    private List<Die> _activeDice = new List<Die>();
+    private List<GameplayDie> _activeDice = new List<GameplayDie>();
     private Coroutine _throwCoroutine;
+    private IReadOnlyList<InventoryDie> _handDice;
 
     /// <summary>
     /// Returns true if dice are currently being thrown.
@@ -51,7 +52,7 @@ public class DiceThrower : MonoBehaviour
     /// <summary>
     /// Returns a read-only list of all active dice spawned by this thrower.
     /// </summary>
-    public IReadOnlyList<Die> ActiveDice => _activeDice;
+    public IReadOnlyList<GameplayDie> ActiveDice => _activeDice;
 
     /// <summary>
     /// Number of dice to throw. Can be modified before calling Throw().
@@ -77,6 +78,15 @@ public class DiceThrower : MonoBehaviour
         {
             _spawnPoint = transform;
         }
+    }
+
+    /// <summary>
+    /// Sets the hand dice data to apply face values from InventoryDie to spawned GameplayDie.
+    /// Call before Throw() to ensure enhanced dice have correct values.
+    /// </summary>
+    public void SetHandDice(IReadOnlyList<InventoryDie> handDice)
+    {
+        _handDice = handDice;
     }
 
     /// <summary>
@@ -134,6 +144,7 @@ public class DiceThrower : MonoBehaviour
         }
 
         _activeDice.Clear();
+        _handDice = null;
 
         // Notify manager that dice have been cleared
         if (_diceManager != null)
@@ -146,7 +157,7 @@ public class DiceThrower : MonoBehaviour
     {
         for (int i = 0; i < _numberOfDice; i++)
         {
-            SpawnAndThrowDie();
+            SpawnAndThrowDie(i);
 
             if (i < _numberOfDice - 1 && _spawnInterval > 0f)
             {
@@ -157,11 +168,18 @@ public class DiceThrower : MonoBehaviour
         _throwCoroutine = null;
     }
 
-    private void SpawnAndThrowDie()
+    private void SpawnAndThrowDie(int index)
     {
         // Instantiate with random rotation for variety
         Quaternion randomRotation = Random.rotation;
-        Die die = Instantiate(_diePrefab, _spawnPoint.position, randomRotation);
+        GameplayDie die = Instantiate(_diePrefab, _spawnPoint.position, randomRotation);
+
+        // Apply face values and types from InventoryDie if available
+        if (_handDice != null && index < _handDice.Count)
+        {
+            die.SetAllSideValues(_handDice[index].GetFaceValues());
+            die.SetAllSideTypes(_handDice[index].GetFaceTypes());
+        }
 
         _activeDice.Add(die);
 

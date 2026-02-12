@@ -32,6 +32,8 @@ public static class GameEvents
     // Dice Events
     public static event Action<int> OnDiceRolled; // roll total
     public static event Action OnAllDiceAtRest;
+    public static event Action<int, int, int> OnDieScored; // dieIndex, rawValue, modifiedValue
+    public static event Action<int, int> OnMoneyDieScored; // dieIndex, value
 
     // Currency Events
     public static event Action<int> OnMoneyChanged; // new money amount
@@ -62,6 +64,8 @@ public static class GameEvents
 
     public static void RaiseDiceRolled(int total) => OnDiceRolled?.Invoke(total);
     public static void RaiseAllDiceAtRest() => OnAllDiceAtRest?.Invoke();
+    public static void RaiseDieScored(int dieIndex, int rawValue, int modifiedValue) => OnDieScored?.Invoke(dieIndex, rawValue, modifiedValue);
+    public static void RaiseMoneyDieScored(int dieIndex, int value) => OnMoneyDieScored?.Invoke(dieIndex, value);
 
     public static void RaiseMoneyChanged(int newAmount) => OnMoneyChanged?.Invoke(newAmount);
     public static void RaiseMoneyEarned(int amount) => OnMoneyEarned?.Invoke(amount);

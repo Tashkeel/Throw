@@ -8,8 +8,9 @@ using UnityEngine;
 /// </summary>
 public class Hand
 {
-    private readonly List<DiceData> _dice = new List<DiceData>();
-    private readonly List<DiceData> _discardedThisRound = new List<DiceData>();
+    private readonly List<InventoryDie> _dice = new List<InventoryDie>();
+    private readonly List<InventoryDie> _discardedThisRound = new List<InventoryDie>();
+    private readonly List<InventoryDie> _thrownThisRound = new List<InventoryDie>();
     private readonly DiceInventory _inventory;
     private readonly int _maxHandSize;
 
@@ -18,7 +19,7 @@ public class Hand
     /// <summary>
     /// Current dice in hand.
     /// </summary>
-    public IReadOnlyList<DiceData> Dice => _dice;
+    public IReadOnlyList<InventoryDie> Dice => _dice;
 
     /// <summary>
     /// Number of dice currently in hand.
@@ -53,38 +54,15 @@ public class Hand
     public int DrawToFull()
     {
         int drawn = 0;
-        var defaultDice = _inventory.GetDefaultDiceType();
 
         while (_dice.Count < _maxHandSize && _inventory.TotalDiceCount > 0)
         {
             // For now, just draw from the default dice type
             // Future: Could implement weighted drawing or player choice
-            if (_inventory.HasDice(defaultDice))
+            if (_inventory.HasDice())
             {
-                if (_inventory.RemoveDice(defaultDice, 1))
-                {
-                    _dice.Add(defaultDice);
+                _dice.Add(_inventory.DrawRandomInventoryDie());
                     drawn++;
-                }
-            }
-            else
-            {
-                // Draw from any available dice
-                bool foundDice = false;
-                foreach (var kvp in _inventory.AllDice)
-                {
-                    if (kvp.Value > 0)
-                    {
-                        if (_inventory.RemoveDice(kvp.Key, 1))
-                        {
-                            _dice.Add(kvp.Key);
-                            drawn++;
-                            foundDice = true;
-                            break;
-                        }
-                    }
-                }
-                if (!foundDice) break;
             }
         }
 
@@ -187,14 +165,65 @@ public class Hand
         }
         _dice.Clear();
 
-        // Also return dice that were discarded during the round
+        // Return dice that were discarded during the round
         foreach (var dice in _discardedThisRound)
         {
             _inventory.AddDice(dice, 1);
         }
         _discardedThisRound.Clear();
 
+        // Return dice that were thrown during the round
+        foreach (var dice in _thrownThisRound)
+        {
+            _inventory.AddDice(dice, 1);
+        }
+        _thrownThisRound.Clear();
+
         OnHandChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Extracts specific dice from hand for throwing.
+    /// Removes them from the hand and returns them in original index order.
+    /// </summary>
+    /// <param name="indices">Indices of dice to extract.</param>
+    /// <returns>List of extracted dice in original index order.</returns>
+    public List<InventoryDie> ExtractDice(List<int> indices)
+    {
+        if (indices == null || indices.Count == 0) return new List<InventoryDie>();
+
+        // Collect dice in original index order first
+        var extracted = new List<InventoryDie>();
+        var sortedIndices = new List<int>(indices);
+        sortedIndices.Sort();
+
+        foreach (int index in sortedIndices)
+        {
+            if (index >= 0 && index < _dice.Count)
+            {
+                extracted.Add(_dice[index]);
+            }
+        }
+
+        // Remove in descending order to preserve indices
+        sortedIndices.Sort((a, b) => b.CompareTo(a));
+        foreach (int index in sortedIndices)
+        {
+            if (index >= 0 && index < _dice.Count)
+            {
+                _dice.RemoveAt(index);
+            }
+        }
+
+        // Track thrown dice so they can be returned to inventory at round end
+        _thrownThisRound.AddRange(extracted);
+
+        if (extracted.Count > 0)
+        {
+            OnHandChanged?.Invoke();
+        }
+
+        return extracted;
     }
 
     /// <summary>
@@ -205,13 +234,14 @@ public class Hand
     {
         _dice.Clear();
         _discardedThisRound.Clear();
+        _thrownThisRound.Clear();
         OnHandChanged?.Invoke();
     }
 
     /// <summary>
     /// Gets the dice data at a specific index.
     /// </summary>
-    public DiceData GetAt(int index)
+    public InventoryDie GetAt(int index)
     {
         if (index < 0 || index >= _dice.Count) return null;
         return _dice[index];

@@ -15,5 +15,5 @@ MonoBehaviour:
   _displayName: Power Up
   _description: Adds +1 to all die sides
   _icon: {fileID: 0}
-  _cost: 30
+  _cost: 10
   _enhancementPrefab: {fileID: 3569472069390800736, guid: 3a7f0bc953ce41347ab2c95a1fdcf071, type: 3}

@@ -16,7 +16,7 @@ public interface IEnhancement
     /// <summary>
     /// Number of dice this enhancement must be applied to.
     /// </summary>
-    int RequiredDiceCount { get; }
+    int MaxDiceCount { get; }
 
     /// <summary>
     /// Applies the enhancement to a die's face values.

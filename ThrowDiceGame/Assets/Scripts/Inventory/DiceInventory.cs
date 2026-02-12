@@ -7,7 +7,7 @@ using UnityEngine;
 /// </summary>
 public class DiceInventory
 {
-    private readonly Dictionary<DiceData, int> _diceCount = new Dictionary<DiceData, int>();
+    private List<InventoryDie> _inventoryDice = new List<InventoryDie>();
     private DiceData _defaultDiceData;
 
     public event Action OnInventoryChanged;
@@ -19,33 +19,24 @@ public class DiceInventory
     {
         get
         {
-            int total = 0;
-            foreach (var count in _diceCount.Values)
-            {
-                total += count;
-            }
-            return total;
+            return _inventoryDice.Count;
         }
     }
 
-    /// <summary>
-    /// Gets all dice types and their counts.
-    /// </summary>
-    public IReadOnlyDictionary<DiceData, int> AllDice => _diceCount;
 
     /// <summary>
     /// Initializes the inventory with a starting set of dice.
     /// </summary>
     /// <param name="defaultDice">The default dice type to use.</param>
     /// <param name="startingCount">Number of dice to start with.</param>
-    public void Initialize(DiceData defaultDice, int startingCount)
+    public void Initialize(InventoryDie defaultDice, int startingCount)
     {
-        _diceCount.Clear();
-        _defaultDiceData = defaultDice;
+        _inventoryDice.Clear();
+        _defaultDiceData = defaultDice._dieType;
 
         if (defaultDice != null && startingCount > 0)
         {
-            _diceCount[defaultDice] = startingCount;
+            AddDice(defaultDice, startingCount);
         }
 
         OnInventoryChanged?.Invoke();
@@ -53,18 +44,19 @@ public class DiceInventory
 
     /// <summary>
     /// Adds dice of a specific type to the inventory.
+    /// Creates distinct copies so each die is an independent instance.
     /// </summary>
-    public void AddDice(DiceData diceType, int count = 1)
+    public void AddDice(InventoryDie die, int count = 1)
     {
-        if (diceType == null || count <= 0) return;
+        if (die._dieType == null || count <= 0) return;
 
-        if (_diceCount.ContainsKey(diceType))
+        // First copy goes in directly
+        _inventoryDice.Add(die);
+
+        // Additional copies are cloned so each is independent
+        for (int i = 1; i < count; i++)
         {
-            _diceCount[diceType] += count;
-        }
-        else
-        {
-            _diceCount[diceType] = count;
+            _inventoryDice.Add(new InventoryDie(die.GetFaceValues(), die._dieType, die.GetFaceTypes()));
         }
 
         OnInventoryChanged?.Invoke();
@@ -74,41 +66,28 @@ public class DiceInventory
     /// Removes dice of a specific type from the inventory.
     /// Returns true if successful, false if not enough dice.
     /// </summary>
-    public bool RemoveDice(DiceData diceType, int count = 1)
+    public bool RemoveDice(InventoryDie die)
     {
-        if (diceType == null || count <= 0) return false;
+        if (die._dieType == null) return false;
 
-        if (!_diceCount.ContainsKey(diceType) || _diceCount[diceType] < count)
+        if (!_inventoryDice.Contains(die))
         {
             return false;
         }
 
-        _diceCount[diceType] -= count;
-
-        if (_diceCount[diceType] <= 0)
-        {
-            _diceCount.Remove(diceType);
-        }
+        _inventoryDice.Remove(die);
 
         OnInventoryChanged?.Invoke();
         return true;
     }
 
-    /// <summary>
-    /// Gets the count of a specific dice type.
-    /// </summary>
-    public int GetCount(DiceData diceType)
-    {
-        if (diceType == null) return 0;
-        return _diceCount.TryGetValue(diceType, out int count) ? count : 0;
-    }
 
     /// <summary>
     /// Checks if the inventory has at least the specified count of a dice type.
     /// </summary>
-    public bool HasDice(DiceData diceType, int count = 1)
+    public bool HasDice(int count = 1)
     {
-        return GetCount(diceType) >= count;
+        return TotalDiceCount >= count;
     }
 
     /// <summary>
@@ -119,19 +98,18 @@ public class DiceInventory
         return _defaultDiceData;
     }
 
+    public InventoryDie DrawRandomInventoryDie()
+    {
+        InventoryDie randomDie = _inventoryDice[UnityEngine.Random.Range(0, TotalDiceCount)];
+        RemoveDice(randomDie);
+        return randomDie;
+    }
+
     /// <summary>
     /// Returns all dice in the inventory as a flat list (for drawing).
     /// </summary>
-    public List<DiceData> GetAllDiceAsList()
+    public List<InventoryDie> GetAllDiceAsList()
     {
-        var list = new List<DiceData>();
-        foreach (var kvp in _diceCount)
-        {
-            for (int i = 0; i < kvp.Value; i++)
-            {
-                list.Add(kvp.Key);
-            }
-        }
-        return list;
+        return _inventoryDice;
     }
 }

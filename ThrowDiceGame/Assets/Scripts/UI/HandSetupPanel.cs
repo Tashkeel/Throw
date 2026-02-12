@@ -13,6 +13,7 @@ public class HandSetupPanel : UIPanel
     [SerializeField] private TextMeshProUGUI _throwsRemainingText;
     [SerializeField] private Transform _diceDisplayContainer;
     [SerializeField] private Button _throwButton;
+    [SerializeField] private Button _throwAllButton;
     [SerializeField] private Button _discardButton;
 
     [Header("Dice Display Prefab")]
@@ -29,6 +30,11 @@ public class HandSetupPanel : UIPanel
         if (_throwButton != null)
         {
             _throwButton.onClick.AddListener(OnThrowClicked);
+        }
+
+        if (_throwAllButton != null)
+        {
+            _throwAllButton.onClick.AddListener(OnThrowAllClicked);
         }
 
         if (_discardButton != null)
@@ -93,8 +99,15 @@ public class HandSetupPanel : UIPanel
         }
         else
         {
-            // Check max discard limit
-            if (_selectedIndices.Count < phase.MaxDiscardCount)
+            int discardsRemaining = _roundManager?.DiscardsRemainingThisRound ?? 0;
+
+            // When discards are available, limit selection to max discard count
+            // When no discards remain, allow selecting any number (for throwing)
+            if (discardsRemaining > 0 && _selectedIndices.Count >= phase.MaxDiscardCount)
+            {
+                // At max selection for discard
+            }
+            else
             {
                 _selectedIndices.Add(index);
                 UpdateItemSelection(index, true);
@@ -135,7 +148,13 @@ public class HandSetupPanel : UIPanel
 
         if(_throwButton != null)
         {
-            _throwButton.interactable = _roundManager.CurrentThrow <= _roundManager.MaxThrows;
+            // Throw button requires at least one die selected
+            _throwButton.interactable = _selectedIndices.Count > 0;
+        }
+
+        if (_throwAllButton != null)
+        {
+            _throwAllButton.interactable = _roundManager?.Hand != null && _roundManager.Hand.Count > 0;
         }
     }
 
@@ -150,7 +169,20 @@ public class HandSetupPanel : UIPanel
 
     private void OnThrowClicked()
     {
-        _roundManager?.ConfirmHandSetup();
+        if (_selectedIndices.Count == 0) return;
+
+        _roundManager?.ConfirmHandSetup(new List<int>(_selectedIndices));
+    }
+
+    private void OnThrowAllClicked()
+    {
+        if (_roundManager?.Hand == null || _roundManager.Hand.Count == 0) return;
+
+        var allIndices = new List<int>();
+        for (int i = 0; i < _roundManager.Hand.Count; i++)
+            allIndices.Add(i);
+
+        _roundManager.ConfirmHandSetup(allIndices);
     }
 
     private void OnDestroy()
@@ -158,6 +190,11 @@ public class HandSetupPanel : UIPanel
         if (_throwButton != null)
         {
             _throwButton.onClick.RemoveListener(OnThrowClicked);
+        }
+
+        if (_throwAllButton != null)
+        {
+            _throwAllButton.onClick.RemoveListener(OnThrowAllClicked);
         }
 
         if (_discardButton != null)

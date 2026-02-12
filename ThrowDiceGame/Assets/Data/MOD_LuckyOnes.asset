@@ -15,5 +15,5 @@ MonoBehaviour:
   _displayName: Lucky Ones
   _description: Dice showing 1 are worth 10.
   _icon: {fileID: 0}
-  _cost: 50
+  _cost: 10
   _modifierPrefab: {fileID: 840051976860877, guid: 452a23b5005ea3a4cb6ad3218e5c4565, type: 3}

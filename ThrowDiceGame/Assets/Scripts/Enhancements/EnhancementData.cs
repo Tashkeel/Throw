@@ -37,7 +37,7 @@ public class EnhancementData : ScriptableObject
     /// <summary>
     /// Number of dice required for this enhancement.
     /// </summary>
-    public int RequiredDiceCount => _enhancementPrefab != null ? _enhancementPrefab.RequiredDiceCount : 1;
+    public int RequiredDiceCount => _enhancementPrefab != null ? _enhancementPrefab.MaxDiceCount : 1;
 
     /// <summary>
     /// Creates an instance of this enhancement's implementation.

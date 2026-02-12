@@ -5,6 +5,17 @@ using UnityEngine;
 /// </summary>
 public class DicePreviewInstance : MonoBehaviour
 {
+    // Standard face directions matching Die/DiceData order: +Y, -Y, +X, -X, +Z, -Z
+    private static readonly Vector3[] FaceDirections = new Vector3[]
+    {
+        Vector3.up,      // 0: +Y
+        Vector3.down,    // 1: -Y
+        Vector3.right,   // 2: +X
+        Vector3.left,    // 3: -X
+        Vector3.forward, // 4: +Z
+        Vector3.back     // 5: -Z
+    };
+
     private Camera _previewCamera;
     private Vector3 _defaultRotation;
     private Renderer[] _renderers;
@@ -60,6 +71,33 @@ public class DicePreviewInstance : MonoBehaviour
 
         transform.Rotate(Vector3.up, rotationY, Space.World);
         transform.Rotate(Vector3.right, rotationX, Space.World);
+    }
+
+    /// <summary>
+    /// Returns the index (0-5) of the face most directly facing the preview camera.
+    /// Indices match DiceData face order: +Y, -Y, +X, -X, +Z, -Z.
+    /// </summary>
+    public int GetCameraFacingFaceIndex()
+    {
+        if (_previewCamera == null) return -1;
+
+        Vector3 dieToCamera = (_previewCamera.transform.position - transform.position).normalized;
+
+        float maxDot = float.MinValue;
+        int bestIndex = 0;
+
+        for (int i = 0; i < FaceDirections.Length; i++)
+        {
+            Vector3 worldDir = transform.TransformDirection(FaceDirections[i]);
+            float dot = Vector3.Dot(worldDir, dieToCamera);
+            if (dot > maxDot)
+            {
+                maxDot = dot;
+                bestIndex = i;
+            }
+        }
+
+        return bestIndex;
     }
 
     /// <summary>

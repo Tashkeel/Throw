@@ -16,7 +16,7 @@ public class BoostLowestEnhancement : BaseEnhancement
     {
         _name = "Lucky Break";
         _description = "Raises the lowest face value to 3.";
-        _requiredDiceCount = 1;
+        _maxDiceCount = 1;
     }
 
     public override int[] ApplyToDie(int[] currentValues)

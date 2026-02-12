@@ -131,7 +131,7 @@ public class DicePreviewRenderer : MonoBehaviour
     /// <param name="diePrefab">The die prefab to instantiate.</param>
     /// <param name="diceData">The dice data to configure face values.</param>
     /// <returns>The preview die instance.</returns>
-    public DicePreviewInstance CreatePreviewDie(Die diePrefab, DiceData diceData)
+    public DicePreviewInstance CreatePreviewDie(GameplayDie diePrefab, InventoryDie inventoryDie)
     {
         if (diePrefab == null) return null;
 
@@ -163,10 +163,10 @@ public class DicePreviewRenderer : MonoBehaviour
         }
 
         // Configure face values if dice data provided
-        var die = dieObj.GetComponent<Die>();
-        if (die != null && diceData != null)
+        var currentDie = dieObj.GetComponent<GameplayDie>();
+        if (currentDie != null && inventoryDie != null)
         {
-            die.SetAllSideValues(diceData.GetFaceValues());
+            currentDie.SetAllSideValues(inventoryDie.GetFaceValues());
         }
 
         // Create and return the preview instance wrapper

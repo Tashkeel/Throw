@@ -63,6 +63,11 @@ public class ShopManager : MonoBehaviour
     public event Action OnPurchaseMade;
 
     /// <summary>
+    /// Event fired when a modifier is sold.
+    /// </summary>
+    public event Action OnModifierSold;
+
+    /// <summary>
     /// Initializes the shop with dependencies.
     /// </summary>
     public void Initialize(DiceInventory inventory, CurrencyManager currencyManager, ModifierManager modifierManager)
@@ -120,12 +125,63 @@ public class ShopManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Attempts to purchase a modifier.
+    /// Returns modifiers from available list that are not currently owned.
+    /// </summary>
+    public List<ModifierData> GetUnownedModifiers()
+    {
+        var unowned = new List<ModifierData>();
+        if (_modifierManager == null) return unowned;
+
+        foreach (var modifier in _availableModifiers)
+        {
+            if (!_modifierManager.IsModifierOwned(modifier))
+            {
+                unowned.Add(modifier);
+            }
+        }
+        return unowned;
+    }
+
+    /// <summary>
+    /// Checks if a modifier is currently owned by the player.
+    /// </summary>
+    public bool IsModifierOwned(ModifierData modifier)
+    {
+        return _modifierManager != null && _modifierManager.IsModifierOwned(modifier);
+    }
+
+    /// <summary>
+    /// Checks if the player can purchase a modifier (afford + not owned + not at capacity).
+    /// </summary>
+    public bool CanPurchaseModifier(ModifierData modifier)
+    {
+        if (modifier == null || _currencyManager == null || _modifierManager == null)
+            return false;
+
+        return _currencyManager.CanAfford(modifier.Cost)
+            && !_modifierManager.IsModifierOwned(modifier)
+            && !_modifierManager.IsAtCapacity;
+    }
+
+    /// <summary>
+    /// Attempts to purchase a modifier. Checks ownership and capacity.
     /// </summary>
     public bool PurchaseModifier(ModifierData modifier)
     {
         if (modifier == null || _currencyManager == null || _modifierManager == null)
             return false;
+
+        if (_modifierManager.IsModifierOwned(modifier))
+        {
+            Debug.Log($"Already own modifier '{modifier.DisplayName}'");
+            return false;
+        }
+
+        if (_modifierManager.IsAtCapacity)
+        {
+            Debug.Log($"Cannot purchase modifier '{modifier.DisplayName}': at capacity ({_modifierManager.MaxModifiers})");
+            return false;
+        }
 
         if (!_currencyManager.CanAfford(modifier.Cost))
         {
@@ -149,11 +205,35 @@ public class ShopManager : MonoBehaviour
     }
 
     /// <summary>
+    /// Sells an active modifier, removing it and refunding half its cost.
+    /// </summary>
+    public bool SellModifier(IScoreModifier modifier)
+    {
+        if (modifier == null || _currencyManager == null || _modifierManager == null)
+            return false;
+
+        int sellPrice = _modifierManager.GetSellPrice(modifier);
+        string name = modifier.Name;
+
+        if (!_modifierManager.RemoveModifier(modifier))
+            return false;
+
+        if (sellPrice > 0)
+        {
+            _currencyManager.AddMoney(sellPrice);
+        }
+
+        Debug.Log($"Sold modifier: {name} for ${sellPrice}");
+        OnModifierSold?.Invoke();
+        return true;
+    }
+
+    /// <summary>
     /// Attempts to apply an enhancement to selected dice.
     /// </summary>
     /// <param name="enhancement">The enhancement to apply.</param>
     /// <param name="selectedDice">List of dice to enhance.</param>
-    public bool ApplyEnhancement(EnhancementData enhancement, List<DiceData> selectedDice)
+    public bool ApplyEnhancement(EnhancementData enhancement, List<DiceDisplayItem> selectedDice)
     {
         if (enhancement == null || selectedDice == null || _currencyManager == null)
             return false;
@@ -185,12 +265,8 @@ public class ShopManager : MonoBehaviour
         // Apply enhancement to each selected die
         foreach (var diceData in selectedDice)
         {
-            // Create enhanced copy
-            var enhancedDice = diceData.CreateEnhancedCopy(enhancementInstance);
+            diceData._inventoryDie.UpgradeDie(enhancementInstance);
 
-            // Remove original from inventory, add enhanced version
-            _inventory.RemoveDice(diceData, 1);
-            _inventory.AddDice(enhancedDice, 1);
         }
 
         // Cleanup the enhancement instance

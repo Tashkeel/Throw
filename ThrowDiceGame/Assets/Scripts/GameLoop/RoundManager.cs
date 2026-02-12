@@ -33,6 +33,7 @@ public class RoundManager : MonoBehaviour
     private DiceInventory _inventory;
     private Hand _hand;
     private ScoreTracker _scoreTracker;
+    private CurrencyManager _currencyManager;
 
     private IRoundPhase _currentPhase;
     private int _currentThrow;
@@ -48,6 +49,7 @@ public class RoundManager : MonoBehaviour
     // Scoring state - waits for UI confirmation
     private ScoringResult? _pendingScoringResult;
     private bool _waitingForScoringConfirmation;
+    private int _remainingDiceAtRoundEnd;
 
     /// <summary>
     /// Current phase of the round.
@@ -95,12 +97,18 @@ public class RoundManager : MonoBehaviour
     public HandSetupPhase HandSetupPhase => _handSetupPhase;
 
     /// <summary>
+    /// The dice inventory.
+    /// </summary>
+    public DiceInventory Inventory => _inventory;
+
+    /// <summary>
     /// Initializes the round manager with external dependencies.
     /// </summary>
-    public void Initialize(DiceInventory inventory, ScoreTracker scoreTracker)
+    public void Initialize(DiceInventory inventory, ScoreTracker scoreTracker, CurrencyManager currencyManager)
     {
         _inventory = inventory;
         _scoreTracker = scoreTracker;
+        _currencyManager = currencyManager;
         _hand = new Hand(inventory, _handSize);
     }
 
@@ -161,7 +169,10 @@ public class RoundManager : MonoBehaviour
 
     private void EnterThrowPhase()
     {
-        _throwPhase = new ThrowPhase(_hand, _diceThrower, _diceManager);
+        var selectedIndices = _handSetupPhase?.SelectedThrowIndices ?? new System.Collections.Generic.List<int>();
+        _throwPhase = new ThrowPhase(_hand, _diceThrower, _diceManager,
+            _scoreTracker, _currencyManager,
+            _currentThrow, _currentRound, selectedIndices);
         SetPhase(_throwPhase);
     }
 
@@ -246,10 +257,19 @@ public class RoundManager : MonoBehaviour
     /// </summary>
     public bool WaitingForScoringConfirmation => _waitingForScoringConfirmation;
 
+    /// <summary>
+    /// Number of remaining dice (hand + inventory) at the end of the round,
+    /// captured before hand is returned to inventory.
+    /// </summary>
+    public int RemainingDiceAtRoundEnd => _remainingDiceAtRoundEnd;
+
     private void EndRound(bool won)
     {
         _roundActive = false;
         _currentPhase = null;
+
+        // Capture remaining dice count before returning hand to inventory
+        _remainingDiceAtRoundEnd = _hand.Count + _inventory.TotalDiceCount;
 
         // Return remaining hand to inventory
         _hand.ReturnAllToInventory();
@@ -271,11 +291,13 @@ public class RoundManager : MonoBehaviour
     /// <summary>
     /// Called by UI to confirm hand setup and proceed to throwing.
     /// </summary>
-    public void ConfirmHandSetup()
+    /// <param name="selectedIndices">Indices of dice selected for throwing.</param>
+    public void ConfirmHandSetup(System.Collections.Generic.List<int> selectedIndices)
     {
         if (_currentPhase is HandSetupPhase setup && setup.WaitingForInput)
         {
-            setup.SkipDiscard();
+            setup.SetThrowSelection(selectedIndices);
+            setup.ConfirmThrow();
         }
     }
 

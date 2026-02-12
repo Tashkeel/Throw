@@ -15,7 +15,7 @@ public class AddValueEnhancement : BaseEnhancement
     {
         _name = "Power Up";
         _description = "Adds +1 to all faces of a die.";
-        _requiredDiceCount = 1;
+        _maxDiceCount = 1;
     }
 
     public override int[] ApplyToDie(int[] currentValues)

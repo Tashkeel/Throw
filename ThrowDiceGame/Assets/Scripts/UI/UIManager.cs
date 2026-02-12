@@ -9,7 +9,6 @@ public class UIManager : MonoBehaviour
     [SerializeField] private GameStartPanel _gameStartPanel;
     [SerializeField] private RoundHUDPanel _roundHUDPanel;
     [SerializeField] private HandSetupPanel _handSetupPanel;
-    [SerializeField] private ThrowingPanel _throwingPanel;
     [SerializeField] private ScoringPanel _scoringPanel;
     [SerializeField] private ShopPanel _shopPanel;
     [SerializeField] private GameOverPanel _gameOverPanel;
@@ -25,7 +24,6 @@ public class UIManager : MonoBehaviour
         if (_gameStartPanel != null) _gameStartPanel.Initialize(_gameManager);
         if (_roundHUDPanel != null) _roundHUDPanel.Initialize(_gameManager, _roundManager);
         if (_handSetupPanel != null) _handSetupPanel.Initialize(_roundManager);
-        if (_throwingPanel != null) _throwingPanel.Initialize();
         if (_scoringPanel != null) _scoringPanel.Initialize(_roundManager);
         if (_shopPanel != null) _shopPanel.Initialize(_shopManager);
         if (_gameOverPanel != null) _gameOverPanel.Initialize(_gameManager);
@@ -93,7 +91,6 @@ public class UIManager : MonoBehaviour
         if (_gameStartPanel != null) _gameStartPanel.Hide();
         if (_roundHUDPanel != null) _roundHUDPanel.Hide();
         if (_handSetupPanel != null) _handSetupPanel.Hide();
-        if (_throwingPanel != null) _throwingPanel.Hide();
         if (_scoringPanel != null) _scoringPanel.Hide();
         if (_shopPanel != null) _shopPanel.Hide();
         if (_gameOverPanel != null) _gameOverPanel.Hide();
@@ -153,13 +150,11 @@ public class UIManager : MonoBehaviour
 
     private void HandleThrowStarted(int throwNumber)
     {
-        ShowPanel(_throwingPanel);
         _roundHUDPanel?.UpdateRoundInfo();
     }
 
     private void HandleScoringStarted(int accumulatedScore)
     {
-        HidePanel(_throwingPanel);
         ShowPanel(_scoringPanel);
     }
 

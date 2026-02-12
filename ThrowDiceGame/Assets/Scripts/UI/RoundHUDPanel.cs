@@ -12,6 +12,7 @@ public class RoundHUDPanel : UIPanel
     [SerializeField] private TextMeshProUGUI _goalText;
     [SerializeField] private TextMeshProUGUI _throwsText;
     [SerializeField] private TextMeshProUGUI _inventoryText;
+    [SerializeField] private TextMeshProUGUI _modifiersText;
 
     private GameManager _gameManager;
     private RoundManager _roundManager;
@@ -25,11 +26,13 @@ public class RoundHUDPanel : UIPanel
     private void OnEnable()
     {
         GameEvents.OnScoreChanged += HandleScoreChanged;
+        GameEvents.OnModifiersChanged += UpdateModifierCount;
     }
 
     private void OnDisable()
     {
         GameEvents.OnScoreChanged -= HandleScoreChanged;
+        GameEvents.OnModifiersChanged -= UpdateModifierCount;
     }
 
     protected override void OnShow()
@@ -43,27 +46,37 @@ public class RoundHUDPanel : UIPanel
 
         if (_roundText != null)
         {
-            _roundText.text = $"Round {_gameManager.CurrentRound}";
+            _roundText.text = $"{_gameManager.CurrentRound}";
         }
 
         if (_scoreText != null && _gameManager.ScoreTracker != null)
         {
-            _scoreText.text = $"Score: {_gameManager.ScoreTracker.CurrentScore}";
+            _scoreText.text = $"{_gameManager.ScoreTracker.CurrentScore}";
         }
 
         if (_goalText != null && _gameManager.ScoreTracker != null)
         {
-            _goalText.text = $"Goal: {_gameManager.ScoreTracker.ScoreGoal}";
+            _goalText.text = $"{_gameManager.ScoreTracker.ScoreGoal}";
         }
 
         if (_throwsText != null)
         {
-            _throwsText.text = $"Throw: {_roundManager.CurrentThrow}/{_roundManager.MaxThrows}";
+            _throwsText.text = $"{_roundManager.CurrentThrow}/{_roundManager.MaxThrows}";
         }
 
         if (_inventoryText != null && _gameManager.Inventory != null)
         {
-            _inventoryText.text = $"Dice: {_gameManager.Inventory.TotalDiceCount}";
+            _inventoryText.text = $"{_gameManager.Inventory.TotalDiceCount}";
+        }
+
+        UpdateModifierCount();
+    }
+
+    private void UpdateModifierCount()
+    {
+        if (_modifiersText != null && ModifierManager.Instance != null)
+        {
+            _modifiersText.text = $"{ModifierManager.Instance.ActiveModifiers.Count}/{ModifierManager.Instance.MaxModifiers}";
         }
     }
 

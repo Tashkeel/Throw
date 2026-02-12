@@ -8,7 +8,7 @@ using UnityEngine;
 public class CurrencyManager
 {
     private int _currentMoney;
-    private int _moneyPerThrowRemaining;
+    private int _moneyPerDieRemaining;
 
     /// <summary>
     /// Current amount of money the player has.
@@ -16,18 +16,18 @@ public class CurrencyManager
     public int CurrentMoney => _currentMoney;
 
     /// <summary>
-    /// Money earned per remaining throw after a successful round.
+    /// Money earned per remaining die after a successful round.
     /// </summary>
-    public int MoneyPerThrowRemaining => _moneyPerThrowRemaining;
+    public int MoneyPerDieRemaining => _moneyPerDieRemaining;
 
     /// <summary>
     /// Event fired when money amount changes.
     /// </summary>
     public event Action<int> OnMoneyChanged;
 
-    public CurrencyManager(int moneyPerThrowRemaining = 10)
+    public CurrencyManager(int moneyPerDieRemaining = 10)
     {
-        _moneyPerThrowRemaining = moneyPerThrowRemaining;
+        _moneyPerDieRemaining = moneyPerDieRemaining;
         _currentMoney = 0;
     }
 
@@ -68,16 +68,16 @@ public class CurrencyManager
     }
 
     /// <summary>
-    /// Awards money based on remaining throws after a successful round.
+    /// Awards money based on remaining dice after a successful round.
     /// </summary>
-    /// <param name="throwsRemaining">Number of unused throws.</param>
-    public void AwardRoundBonus(int throwsRemaining)
+    /// <param name="remainingDice">Number of remaining dice (hand + inventory).</param>
+    public void AwardRoundBonus(int remainingDice)
     {
-        if (throwsRemaining <= 0) return;
+        if (remainingDice <= 0) return;
 
-        int bonus = throwsRemaining * _moneyPerThrowRemaining;
+        int bonus = remainingDice * _moneyPerDieRemaining;
         AddMoney(bonus);
-        Debug.Log($"Round bonus: {throwsRemaining} throws remaining x ${_moneyPerThrowRemaining} = ${bonus}");
+        Debug.Log($"Round bonus: {remainingDice} dice remaining x ${_moneyPerDieRemaining} = ${bonus}");
     }
 
     /// <summary>

@@ -14,6 +14,7 @@ public class HandSetupPhase : IRoundPhase
     private int _discardsRemaining;
     private bool _isComplete;
     private bool _waitingForInput;
+    private List<int> _selectedThrowIndices;
 
     public RoundPhase PhaseType => RoundPhase.HandSetup;
     public bool IsComplete => _isComplete;
@@ -32,6 +33,11 @@ public class HandSetupPhase : IRoundPhase
     /// Whether the phase is waiting for player input.
     /// </summary>
     public bool WaitingForInput => _waitingForInput;
+
+    /// <summary>
+    /// The indices of dice selected for throwing, set before completing the phase.
+    /// </summary>
+    public List<int> SelectedThrowIndices => _selectedThrowIndices;
 
     /// <summary>
     /// Event fired when the phase needs player input for discard selection.
@@ -55,11 +61,8 @@ public class HandSetupPhase : IRoundPhase
         _isComplete = false;
         _discardsRemaining = _maxDiscards;
 
-        // Draw initial hand if empty
-        if (_hand.Count == 0)
-        {
-            _hand.DrawToFull();
-        }
+        // Draw from inventory to fill hand back to max size
+        _hand.DrawToFull();
 
         GameEvents.RaiseHandSetupStarted();
         Debug.Log($"Hand Setup: {_hand.Count} dice in hand. {_discardsRemaining} discards available.");
@@ -114,6 +117,22 @@ public class HandSetupPhase : IRoundPhase
         // Continue waiting for input - user must click Throw to proceed
         _waitingForInput = true;
         OnDiscardInputRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Sets the indices of dice selected for throwing.
+    /// </summary>
+    public void SetThrowSelection(List<int> indices)
+    {
+        _selectedThrowIndices = indices != null ? new List<int>(indices) : new List<int>();
+    }
+
+    /// <summary>
+    /// Confirms the throw selection and completes the phase.
+    /// </summary>
+    public void ConfirmThrow()
+    {
+        CompletePhase();
     }
 
     /// <summary>

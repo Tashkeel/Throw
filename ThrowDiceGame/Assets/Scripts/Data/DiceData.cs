@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 /// <summary>
@@ -21,30 +22,25 @@ public class DiceData : ScriptableObject
     [Tooltip("The six face values for this die type (+Y, -Y, +X, -X, +Z, -Z)")]
     private int[] _faceValues = new int[] { 1, 6, 3, 4, 2, 5 };
 
+    [SerializeField]
+    [Tooltip("The side type for each face (Score or Money). Must match _faceValues length.")]
+    private DieSideType[] _faceTypes = new DieSideType[] {
+        DieSideType.Score, DieSideType.Score, DieSideType.Score,
+        DieSideType.Score, DieSideType.Score, DieSideType.Score
+    };
+
     [Header("Visuals")]
     [SerializeField]
     [Tooltip("The prefab to instantiate when this die is thrown")]
-    private Die _diePrefab;
+    private GameplayDie _diePrefab;
 
     // Runtime enhancement tracking
     private bool _isEnhanced = false;
-    private List<string> _appliedEnhancements = new List<string>();
 
     public string DisplayName => _displayName;
     public string Description => _description;
-    public Die DiePrefab => _diePrefab;
+    public GameplayDie DiePrefab => _diePrefab;
     public bool IsEnhanced => _isEnhanced;
-    public IReadOnlyList<string> AppliedEnhancements => _appliedEnhancements;
-
-    /// <summary>
-    /// Gets a copy of the face values array.
-    /// </summary>
-    public int[] GetFaceValues()
-    {
-        var copy = new int[_faceValues.Length];
-        System.Array.Copy(_faceValues, copy, _faceValues.Length);
-        return copy;
-    }
 
     private void OnValidate()
     {
@@ -52,40 +48,28 @@ public class DiceData : ScriptableObject
         {
             _faceValues = new int[] { 1, 6, 3, 4, 2, 5 };
         }
+
+        if (_faceTypes == null || _faceTypes.Length != 6)
+        {
+            _faceTypes = new DieSideType[] {
+                DieSideType.Score, DieSideType.Score, DieSideType.Score,
+                DieSideType.Score, DieSideType.Score, DieSideType.Score
+            };
+        }
     }
 
     /// <summary>
     /// Creates a standard die data at runtime (for default inventory).
     /// </summary>
-    public static DiceData CreateStandardDie()
+    public static InventoryDie CreateDie(DiceData data)
     {
-        var data = CreateInstance<DiceData>();
-        data._displayName = "Standard Die";
-        data._description = "A standard six-sided die.";
-        data._faceValues = new int[] { 1, 6, 3, 4, 2, 5 };
-        return data;
+        InventoryDie newDie = new InventoryDie(data._faceValues, data, data._faceTypes);
+        return newDie;
     }
 
-    /// <summary>
-    /// Creates an enhanced copy of this die with the given enhancement applied.
-    /// </summary>
-    public DiceData CreateEnhancedCopy(IEnhancement enhancement)
+    public static DiceData CreateDefaultDie()
     {
-        var copy = CreateInstance<DiceData>();
-        copy._displayName = _displayName + " +";
-        copy._description = _description;
-        copy._diePrefab = _diePrefab;
-        copy._isEnhanced = true;
-
-        // Copy existing enhancements
-        copy._appliedEnhancements = new List<string>(_appliedEnhancements);
-        copy._appliedEnhancements.Add(enhancement.Name);
-
-        // Apply enhancement to face values
-        copy._faceValues = enhancement.ApplyToDie(GetFaceValues());
-
-        Debug.Log($"Created enhanced die '{copy._displayName}' with {enhancement.Name}");
-        return copy;
+        return CreateInstance<DiceData>();
     }
 
     /// <summary>
@@ -99,20 +83,5 @@ public class DiceData : ScriptableObject
             return;
         }
         _faceValues = (int[])newValues.Clone();
-    }
-
-    /// <summary>
-    /// Creates a runtime copy of this die data (for inventory instances).
-    /// </summary>
-    public DiceData CreateRuntimeCopy()
-    {
-        var copy = CreateInstance<DiceData>();
-        copy._displayName = _displayName;
-        copy._description = _description;
-        copy._faceValues = (int[])_faceValues.Clone();
-        copy._diePrefab = _diePrefab;
-        copy._isEnhanced = _isEnhanced;
-        copy._appliedEnhancements = new List<string>(_appliedEnhancements);
-        return copy;
     }
 }

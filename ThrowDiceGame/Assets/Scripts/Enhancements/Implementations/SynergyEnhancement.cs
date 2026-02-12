@@ -15,7 +15,7 @@ public class SynergyEnhancement : BaseEnhancement
     {
         _name = "Synergy";
         _description = "Select 2 dice. Both get +2 to all faces.";
-        _requiredDiceCount = 2;
+        _maxDiceCount = 2;
     }
 
     public override int[] ApplyToDie(int[] currentValues)

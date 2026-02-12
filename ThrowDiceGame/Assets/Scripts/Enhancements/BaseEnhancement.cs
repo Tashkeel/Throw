@@ -16,11 +16,11 @@ public abstract class BaseEnhancement : MonoBehaviour, IEnhancement
 
     [SerializeField]
     [Tooltip("Number of dice this enhancement applies to")]
-    protected int _requiredDiceCount = 1;
+    protected int _maxDiceCount = 1;
 
     public virtual string Name => _name;
     public virtual string Description => _description;
-    public virtual int RequiredDiceCount => _requiredDiceCount;
+    public virtual int MaxDiceCount => _maxDiceCount;
 
     /// <summary>
     /// Override this to implement the enhancement's modification logic.

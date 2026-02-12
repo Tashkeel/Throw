@@ -41,10 +41,8 @@ public class ScoringPhase : IRoundPhase
 
         GameEvents.RaiseScoringStarted(_scoreTracker.CurrentScore);
 
-        // Add this throw's score to the round total
-        _scoreTracker.AddScore(_throwScore);
-
-        Debug.Log($"Scoring: Throw {_currentThrow}/{_maxThrows}, Added {_throwScore}, Total: {_scoreTracker.CurrentScore}/{_scoreTracker.ScoreGoal}");
+        // Score is already added progressively during ThrowPhase (per-die + AfterThrow bonus)
+        Debug.Log($"Scoring: Throw {_currentThrow}/{_maxThrows}, Throw score {_throwScore}, Total: {_scoreTracker.CurrentScore}/{_scoreTracker.ScoreGoal}");
 
         // Evaluate result
         EvaluateResult();

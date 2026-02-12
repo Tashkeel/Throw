@@ -47,11 +47,11 @@ public class ShopPanel : UIPanel
     [SerializeField] private RoundManager _roundManager;
 
     private ShopManager _shopManager;
-    private List<DiceData> _displayedDice = new List<DiceData>(); // The random subset being displayed
+    private List<InventoryDie> _displayedDice = new List<InventoryDie>(); // The random subset being displayed
     private List<ShopItem> _currentShopItems = new List<ShopItem>();
     private List<GameObject> _shopItemDisplays = new List<GameObject>();
     private List<DiceDisplayItem> _diceDisplayItems = new List<DiceDisplayItem>();
-    private List<DiceData> _selectedDice = new List<DiceData>();
+    private List<DiceDisplayItem> _selectedDice = new List<DiceDisplayItem>();
     private EnhancementData _pendingEnhancement;
     private bool _isSelectingDice;
 
@@ -106,12 +106,12 @@ public class ShopPanel : UIPanel
     {
         _currentShopItems.Clear();
 
-        // Collect all available items
+        // Collect all available items (only unowned modifiers)
         var allItems = new List<ShopItem>();
 
         if (_shopManager != null)
         {
-            foreach (var modifier in _shopManager.AvailableModifiers)
+            foreach (var modifier in _shopManager.GetUnownedModifiers())
             {
                 allItems.Add(new ShopItem { Modifier = modifier });
             }
@@ -206,8 +206,8 @@ public class ShopPanel : UIPanel
         {
             display.Initialize(
                 shopItem.Modifier,
-                () => PurchaseModifier(shopItem.Modifier),
-                () => _shopManager.CanAffordModifier(shopItem.Modifier)
+                () => PurchaseModifier(shopItem.Modifier, display),
+                () => _shopManager.CanPurchaseModifier(shopItem.Modifier)
             );
         }
         else if (shopItem.IsEnhancement)
@@ -222,11 +222,17 @@ public class ShopPanel : UIPanel
         _shopItemDisplays.Add(display.gameObject);
     }
 
-    private void PurchaseModifier(ModifierData modifier)
+    private void PurchaseModifier(ModifierData modifier, ShopItemDisplay display)
     {
         if (_shopManager != null && _shopManager.PurchaseModifier(modifier))
         {
             Debug.Log($"Purchased modifier: {modifier.DisplayName}");
+
+            // Mark the display as sold out
+            if (display != null)
+            {
+                display.MarkSoldOut();
+            }
         }
     }
 
@@ -308,14 +314,14 @@ public class ShopPanel : UIPanel
             var item = Instantiate(_diceDisplayPrefab, _diceSelectionContainer);
 
             int index = i; // Capture for closure
-            DiceData capturedDice = diceData;
+            DiceData capturedDice = diceData._dieType;
 
-            item.Initialize(diceData, index, () => OnDiceClicked(capturedDice, index));
+            item.Initialize(diceData, index, () => OnDiceClicked(item, index));
             _diceDisplayItems.Add(item);
         }
     }
 
-    private void OnDiceClicked(DiceData diceData, int index)
+    private void OnDiceClicked(DiceDisplayItem die, int index)
     {
         // Only allow selection when actively selecting for an enhancement
         if (!_isSelectingDice || _pendingEnhancement == null)
@@ -328,18 +334,20 @@ public class ShopPanel : UIPanel
 
         // Find if this specific dice instance is already selected
         // Use the displayed dice list for proper tracking
-        bool isSelected = _selectedDice.Contains(diceData);
+        bool isSelected = _selectedDice.Contains(die);
 
         if (isSelected)
         {
             // Deselect
-            _selectedDice.Remove(diceData);
+            Debug.Log("Deselected a Die");
+            _selectedDice.Remove(die);
             UpdateItemSelection(index, false);
         }
         else if (_selectedDice.Count < requiredCount)
         {
             // Select
-            _selectedDice.Add(diceData);
+            Debug.Log("Selected a Die");
+            _selectedDice.Add(die);
             UpdateItemSelection(index, true);
         }
 
@@ -401,7 +409,7 @@ public class ShopPanel : UIPanel
         if (_pendingEnhancement == null || _selectedDice.Count != _pendingEnhancement.RequiredDiceCount)
             return;
 
-        if (_shopManager.ApplyEnhancement(_pendingEnhancement, new List<DiceData>(_selectedDice)))
+        if (_shopManager.ApplyEnhancement(_pendingEnhancement, new List<DiceDisplayItem>(_selectedDice)))
         {
             Debug.Log($"Applied enhancement: {_pendingEnhancement.DisplayName}");
 

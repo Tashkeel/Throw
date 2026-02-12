@@ -1,3 +1,4 @@
+using System;
 using TMPro;
 using UnityEngine;
 
@@ -5,7 +6,7 @@ using UnityEngine;
 /// Represents a physical die that can be rolled and reports its top-facing value.
 /// Attach this to a prefab containing a Rigidbody and cube collider.
 /// </summary>
-public class Die : MonoBehaviour
+public class GameplayDie : MonoBehaviour
 {
     /// <summary>
     /// Represents a single face of the die with its local direction, value, and text display.
@@ -16,17 +17,20 @@ public class Die : MonoBehaviour
         [Tooltip("The local-space direction this face points when facing outward")]
         public Vector3 localDirection;
 
-        [Tooltip("The value shown on this face (1-6 for standard dice)")]
-        [Range(1, 6)]
+        [Tooltip("The value shown on this face")]
         public int value;
+
+        [Tooltip("Whether this face contributes to score or money")]
+        public DieSideType sideType = DieSideType.Score;
 
         [Tooltip("TextMeshPro component to display the value on this face")]
         public TextMeshPro textDisplay;
 
-        public Side(Vector3 direction, int faceValue)
+        public Side(Vector3 direction, int faceValue, DieSideType type = DieSideType.Score)
         {
             localDirection = direction;
             value = faceValue;
+            sideType = type;
             textDisplay = null;
         }
     }
@@ -45,7 +49,24 @@ public class Die : MonoBehaviour
     [Tooltip("Angular velocity threshold below which the die is considered at rest (used as fallback)")]
     private float _restAngularVelocityThreshold = 0.01f;
 
+    [SerializeField]
+    [Tooltip("Time the die must remain at rest before confirming (seconds)")]
+    private float _restConfirmationTime = 0.2f;
+
+    [SerializeField]
+    [Tooltip("How often to check rest state when monitoring (seconds)")]
+    private float _restCheckInterval = 0.1f;
+
     private Rigidbody _rigidbody;
+    private bool _isMonitoringRest;
+    private bool _hasReportedRest;
+    private float _restTimer;
+    private float _restCheckTimer;
+
+    /// <summary>
+    /// Fires when this die has confirmed rest. Provides (die, topFaceValue).
+    /// </summary>
+    public event Action<GameplayDie, int> OnDieAtRest;
 
     /// <summary>
     /// Returns true if the die has come to rest after being rolled.
@@ -88,6 +109,50 @@ public class Die : MonoBehaviour
         }
 
         UpdateAllTextDisplays();
+    }
+
+    /// <summary>
+    /// Starts monitoring this die for rest. Called by DiceManager after throw.
+    /// </summary>
+    public void StartMonitoringRest()
+    {
+        _isMonitoringRest = true;
+        _hasReportedRest = false;
+        _restTimer = 0f;
+        _restCheckTimer = 0f;
+    }
+
+    /// <summary>
+    /// Stops monitoring this die for rest.
+    /// </summary>
+    public void StopMonitoringRest()
+    {
+        _isMonitoringRest = false;
+    }
+
+    private void Update()
+    {
+        if (!_isMonitoringRest || _hasReportedRest) return;
+
+        _restCheckTimer += Time.deltaTime;
+        if (_restCheckTimer < _restCheckInterval) return;
+        _restCheckTimer = 0f;
+
+        if (IsAtRest)
+        {
+            _restTimer += _restCheckInterval;
+            if (_restTimer >= _restConfirmationTime)
+            {
+                _hasReportedRest = true;
+                _isMonitoringRest = false;
+                int value = GetTopFaceValue();
+                OnDieAtRest?.Invoke(this, value);
+            }
+        }
+        else
+        {
+            _restTimer = 0f;
+        }
     }
 
     private void Reset()
@@ -141,7 +206,9 @@ public class Die : MonoBehaviour
     {
         if (side?.textDisplay != null)
         {
-            side.textDisplay.text = side.value.ToString();
+            side.textDisplay.text = side.sideType == DieSideType.Money
+                ? $"${side.value}"
+                : side.value.ToString();
         }
     }
 
@@ -177,6 +244,54 @@ public class Die : MonoBehaviour
     }
 
     /// <summary>
+    /// Gets the side type of the top-facing face.
+    /// Returns DieSideType.Score by default if not at rest or no valid face is found.
+    /// </summary>
+    public DieSideType GetTopFaceSideType()
+    {
+        if (_sides == null || _sides.Length == 0) return DieSideType.Score;
+
+        float maxDot = float.MinValue;
+        DieSideType topType = DieSideType.Score;
+
+        foreach (var side in _sides)
+        {
+            if (side == null) continue;
+
+            Vector3 worldDirection = transform.TransformDirection(side.localDirection);
+            float dot = Vector3.Dot(worldDirection, Vector3.up);
+
+            if (dot > maxDot)
+            {
+                maxDot = dot;
+                topType = side.sideType;
+            }
+        }
+
+        return topType;
+    }
+
+    /// <summary>
+    /// Sets all side types at once.
+    /// </summary>
+    /// <param name="types">Array of 6 DieSideType values corresponding to: +Y, -Y, +X, -X, +Z, -Z</param>
+    public void SetAllSideTypes(DieSideType[] types)
+    {
+        if (types == null || types.Length != 6)
+        {
+            Debug.LogError("SetAllSideTypes requires exactly 6 values.");
+            return;
+        }
+
+        for (int i = 0; i < 6; i++)
+        {
+            _sides[i].sideType = types[i];
+        }
+
+        UpdateAllTextDisplays();
+    }
+
+    /// <summary>
     /// Attempts to get the top face value. Returns true if the die is at rest and a value was found.
     /// </summary>
     /// <param name="value">The top face value, or 0 if not at rest or invalid.</param>
@@ -199,7 +314,7 @@ public class Die : MonoBehaviour
         var copy = new Side[_sides.Length];
         for (int i = 0; i < _sides.Length; i++)
         {
-            copy[i] = new Side(_sides[i].localDirection, _sides[i].value);
+            copy[i] = new Side(_sides[i].localDirection, _sides[i].value, _sides[i].sideType);
         }
         return copy;
     }

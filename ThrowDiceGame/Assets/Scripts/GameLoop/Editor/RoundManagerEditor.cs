@@ -38,9 +38,16 @@ public class RoundManagerEditor : Editor
             switch (manager.CurrentPhase)
             {
                 case RoundPhase.HandSetup:
-                    if (GUILayout.Button("Skip Hand Setup (Confirm)", GUILayout.Height(25)))
+                    if (GUILayout.Button("Throw All Dice (Debug)", GUILayout.Height(25)))
                     {
-                        manager.ConfirmHandSetup();
+                        // Debug: select all dice in hand and throw
+                        var allIndices = new System.Collections.Generic.List<int>();
+                        if (manager.Hand != null)
+                        {
+                            for (int i = 0; i < manager.Hand.Count; i++)
+                                allIndices.Add(i);
+                        }
+                        manager.ConfirmHandSetup(allIndices);
                     }
                     break;
             }

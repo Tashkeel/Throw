@@ -4,10 +4,16 @@ using UnityEngine;
 
 /// <summary>
 /// Manages active score modifiers and applies them during scoring.
+/// Supports capacity limits, ownership tracking, and selling.
 /// </summary>
 public class ModifierManager : MonoBehaviour
 {
+    [SerializeField]
+    [Tooltip("Maximum number of modifiers that can be equipped at once")]
+    private int _maxModifiers = 3;
+
     private List<IScoreModifier> _activeModifiers = new List<IScoreModifier>();
+    private Dictionary<IScoreModifier, ModifierData> _modifierDataMap = new Dictionary<IScoreModifier, ModifierData>();
     private Transform _modifierContainer;
 
     /// <summary>
@@ -19,6 +25,16 @@ public class ModifierManager : MonoBehaviour
     /// Read-only list of active modifiers.
     /// </summary>
     public IReadOnlyList<IScoreModifier> ActiveModifiers => _activeModifiers;
+
+    /// <summary>
+    /// Maximum number of modifiers allowed.
+    /// </summary>
+    public int MaxModifiers => _maxModifiers;
+
+    /// <summary>
+    /// Whether the modifier capacity has been reached.
+    /// </summary>
+    public bool IsAtCapacity => _activeModifiers.Count >= _maxModifiers;
 
     /// <summary>
     /// Event fired when modifiers change.
@@ -40,32 +56,46 @@ public class ModifierManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Adds a modifier from ModifierData.
+    /// Adds a modifier from ModifierData. Respects capacity.
     /// </summary>
     public bool AddModifier(ModifierData modifierData)
     {
         if (modifierData == null) return false;
 
+        if (IsAtCapacity)
+        {
+            Debug.Log($"Cannot add modifier '{modifierData.DisplayName}': at capacity ({_maxModifiers})");
+            return false;
+        }
+
         var modifier = modifierData.CreateModifierInstance(_modifierContainer);
         if (modifier == null) return false;
 
         _activeModifiers.Add(modifier);
+        _modifierDataMap[modifier] = modifierData;
         OnModifiersChanged?.Invoke();
         GameEvents.RaiseModifiersChanged();
-        Debug.Log($"Modifier added: {modifier.Name}");
+        Debug.Log($"Modifier added: {modifier.Name} ({_activeModifiers.Count}/{_maxModifiers})");
         return true;
     }
 
     /// <summary>
-    /// Adds a modifier instance directly.
+    /// Adds a modifier instance directly. Respects capacity.
+    /// Note: No ModifierData tracking for direct adds.
     /// </summary>
     public void AddModifier(IScoreModifier modifier)
     {
         if (modifier == null) return;
 
+        if (IsAtCapacity)
+        {
+            Debug.LogWarning($"Cannot add modifier '{modifier.Name}': at capacity ({_maxModifiers}). No ModifierData tracking for direct adds.");
+            return;
+        }
+
         _activeModifiers.Add(modifier);
         OnModifiersChanged?.Invoke();
-        Debug.Log($"Modifier added: {modifier.Name}");
+        Debug.Log($"Modifier added (direct): {modifier.Name}");
     }
 
     /// <summary>
@@ -78,13 +108,16 @@ public class ModifierManager : MonoBehaviour
         bool removed = _activeModifiers.Remove(modifier);
         if (removed)
         {
+            _modifierDataMap.Remove(modifier);
+
             // Destroy the MonoBehaviour if it is one
             if (modifier is MonoBehaviour mb)
             {
                 Destroy(mb.gameObject);
             }
             OnModifiersChanged?.Invoke();
-            Debug.Log($"Modifier removed: {modifier.Name}");
+            GameEvents.RaiseModifiersChanged();
+            Debug.Log($"Modifier removed: {modifier.Name} ({_activeModifiers.Count}/{_maxModifiers})");
         }
         return removed;
     }
@@ -102,9 +135,45 @@ public class ModifierManager : MonoBehaviour
             }
         }
         _activeModifiers.Clear();
+        _modifierDataMap.Clear();
         OnModifiersChanged?.Invoke();
         GameEvents.RaiseModifiersChanged();
         Debug.Log("All modifiers cleared.");
+    }
+
+    /// <summary>
+    /// Checks if a modifier from the given ModifierData is currently owned/active.
+    /// </summary>
+    public bool IsModifierOwned(ModifierData modifierData)
+    {
+        if (modifierData == null) return false;
+        return _modifierDataMap.ContainsValue(modifierData);
+    }
+
+    /// <summary>
+    /// Gets the ModifierData associated with an active modifier, or null if not tracked.
+    /// </summary>
+    public ModifierData GetModifierData(IScoreModifier modifier)
+    {
+        if (modifier != null && _modifierDataMap.TryGetValue(modifier, out var data))
+        {
+            return data;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Gets the sell price for a modifier (half of purchase cost).
+    /// Returns 0 if the modifier has no associated ModifierData.
+    /// </summary>
+    public int GetSellPrice(IScoreModifier modifier)
+    {
+        var data = GetModifierData(modifier);
+        if (data != null)
+        {
+            return data.Cost / 2;
+        }
+        return 0;
     }
 
     /// <summary>
