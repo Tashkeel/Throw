@@ -111,6 +111,7 @@ public class DiceManager : MonoBehaviour
             {
                 die.StartMonitoringRest();
             }
+
         }
     }
 

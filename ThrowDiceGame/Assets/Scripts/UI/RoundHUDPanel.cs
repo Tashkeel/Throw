@@ -84,7 +84,7 @@ public class RoundHUDPanel : UIPanel
     {
         if (_scoreText != null)
         {
-            _scoreText.text = $"Score: {newScore}";
+            _scoreText.text = $"{newScore}";
         }
     }
 }

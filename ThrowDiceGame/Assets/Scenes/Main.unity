@@ -279,6 +279,7 @@ GameObject:
   - component: {fileID: 330585545}
   - component: {fileID: 330585544}
   - component: {fileID: 330585547}
+  - component: {fileID: 330585548}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -353,13 +354,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.1893559, y: -0, z: -0, w: 0.98190856}
-  m_LocalPosition: {x: 0, y: 7.85, z: -25.98}
+  m_LocalRotation: {x: 0.24687243, y: -0, z: -0, w: 0.969048}
+  m_LocalPosition: {x: -1.0862228, y: 8.68, z: -20.89}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 21.83, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 28.585, y: 0, z: 0}
 --- !u!114 &330585547
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -404,6 +405,36 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
+--- !u!114 &330585548
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 330585543}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa3f4d80a1d52a542b1d15dfa32c98ad, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CameraController
+  _diceManager: {fileID: 6478494174701521010}
+  _orbitTarget: {x: 0, y: 0, z: 0}
+  _orbitDistance: 12
+  _orbitHeight: 8
+  _orbitSensitivity: 0.3
+  _freeLookSensitivity: 0.2
+  _returnSpeed: 3
+  _trackingSmoothTime: 0.4
+  _trackingPadding: 1.5
+  _trackingMinDistance: 20
+  _trackingMaxDistance: 40
+  _trackingHeightOffset: 8
+  _trackingViewAngle: 45
+  _dieFocusRotationSpeed: 5
+  _dieFocusDuration: 0.6
+  _dieFocusMinDuration: 0.15
+  _dieFocusMaxDisplacement: 2
+  _modeTransitionSmoothTime: 0.5
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -1208,6 +1239,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1911793524201950022, guid: 119ae7dee9cd4c44c8d60246f508bfbd, type: 3}
+      propertyPath: targetGroup
+      value: 
+      objectReference: {fileID: 0}
     - target: {fileID: 6624696345060716015, guid: 119ae7dee9cd4c44c8d60246f508bfbd, type: 3}
       propertyPath: m_Name
       value: Game
@@ -1217,6 +1252,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 119ae7dee9cd4c44c8d60246f508bfbd, type: 3}
+--- !u!114 &6478494174701521010 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4551739749325826737, guid: 119ae7dee9cd4c44c8d60246f508bfbd, type: 3}
+  m_PrefabInstance: {fileID: 6478494174701521009}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a161b26abfeb9d4e811979b16df7a2f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DiceManager
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
