@@ -419,11 +419,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CameraController
   _diceManager: {fileID: 6478494174701521010}
   _orbitTarget: {x: 0, y: 0, z: 0}
-  _orbitDistance: 12
+  _orbitDistance: 20
   _orbitHeight: 8
   _orbitSensitivity: 0.3
-  _freeLookSensitivity: 0.2
-  _returnSpeed: 3
   _trackingSmoothTime: 0.4
   _trackingPadding: 1.5
   _trackingMinDistance: 20
