@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -19,9 +20,25 @@ public class HandSetupPanel : UIPanel
     [Header("Dice Display Prefab")]
     [SerializeField] private DiceDisplayItem _diceDisplayPrefab;
 
+    [Header("Draw Animation")]
+    [SerializeField]
+    [Tooltip("Delay between each die appearing during the draw sequence")]
+    private float _drawStaggerDelay = 0.08f;
+
+    [SerializeField]
+    [Tooltip("Scale multiplier at the peak of each die's appear bump")]
+    private float _drawBumpScale = 1.3f;
+
+    [SerializeField]
+    [Tooltip("Duration of each die's scale bump animation")]
+    private float _drawBumpDuration = 0.2f;
+
     private RoundManager _roundManager;
     private List<DiceDisplayItem> _diceDisplayItems = new List<DiceDisplayItem>();
+    private List<GameObject> _slotObjects = new List<GameObject>();
     private List<int> _selectedIndices = new List<int>();
+    private Coroutine _drawSequence;
+    private bool _drawAnimating;
 
     public void Initialize(RoundManager roundManager)
     {
@@ -57,37 +74,139 @@ public class HandSetupPanel : UIPanel
 
     private void UpdateDiceDisplay()
     {
-        // Clear existing displays
+        if (_drawSequence != null)
+            StopCoroutine(_drawSequence);
+
+        // Clear existing displays and slots
         foreach (var item in _diceDisplayItems)
         {
             if (item != null)
-            {
                 Destroy(item.gameObject);
-            }
         }
         _diceDisplayItems.Clear();
 
+        foreach (var slot in _slotObjects)
+        {
+            if (slot != null)
+                Destroy(slot);
+        }
+        _slotObjects.Clear();
+
         if (_roundManager?.Hand == null || _diceDisplayContainer == null) return;
 
-        // Create display for each die in hand
+        _drawSequence = StartCoroutine(DrawDiceSequence());
+    }
+
+    private IEnumerator DrawDiceSequence()
+    {
+        _drawAnimating = true;
+        SetButtonsInteractable(false);
+
         var hand = _roundManager.Hand;
+        if (_diceDisplayPrefab == null) yield break;
+
+        // Pre-create empty slots so the layout group allocates space up front
+        Vector2 slotSize = ((RectTransform)_diceDisplayPrefab.transform).sizeDelta;
+        for (int i = 0; i < hand.Count; i++)
+        {
+            var slot = CreateLayoutSlot(slotSize);
+            _slotObjects.Add(slot);
+        }
+
+        // Force layout to rebuild immediately so slots are positioned
+        LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)_diceDisplayContainer);
+
+        // Stagger-instantiate actual dice displays inside each slot
         for (int i = 0; i < hand.Count; i++)
         {
             var diceData = hand.GetAt(i);
             if (diceData == null) continue;
 
-            if (_diceDisplayPrefab != null)
-            {
-                var item = Instantiate(_diceDisplayPrefab, _diceDisplayContainer);
-                int index = i; // Capture for closure
-                item.Initialize(diceData, index, () => OnDiceClicked(index));
-                _diceDisplayItems.Add(item);
-            }
+            var item = Instantiate(_diceDisplayPrefab, _slotObjects[i].transform);
+            StretchToParent((RectTransform)item.transform);
+
+            int index = i;
+            item.Initialize(diceData, index, () => OnDiceClicked(index));
+            _diceDisplayItems.Add(item);
+
+            StartCoroutine(AnimateScaleBump(item.transform));
+
+            if (i < hand.Count - 1)
+                yield return new WaitForSeconds(_drawStaggerDelay);
         }
+
+        // Wait for the last bump to finish before enabling interaction
+        yield return new WaitForSeconds(_drawBumpDuration);
+
+        _drawAnimating = false;
+        _drawSequence = null;
+        UpdateUI();
+    }
+
+    private GameObject CreateLayoutSlot(Vector2 size)
+    {
+        var slot = new GameObject("DiceSlot", typeof(RectTransform), typeof(LayoutElement));
+        slot.transform.SetParent(_diceDisplayContainer, false);
+        var le = slot.GetComponent<LayoutElement>();
+        le.preferredWidth = size.x;
+        le.preferredHeight = size.y;
+        return slot;
+    }
+
+    private static void StretchToParent(RectTransform rt)
+    {
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = Vector2.zero;
+        rt.offsetMax = Vector2.zero;
+    }
+
+    private IEnumerator AnimateScaleBump(Transform target)
+    {
+        Vector3 baseScale = target.localScale;
+        target.localScale = Vector3.zero;
+
+        float elapsed = 0f;
+        float halfDuration = _drawBumpDuration * 0.4f;
+
+        // Scale up to bump peak
+        while (elapsed < halfDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / halfDuration);
+            // Ease-out quad for the upswing
+            float scale = _drawBumpScale * (1f - (1f - t) * (1f - t));
+            target.localScale = baseScale * scale;
+            yield return null;
+        }
+
+        // Scale back down to normal
+        elapsed = 0f;
+        float settleTime = _drawBumpDuration - halfDuration;
+        while (elapsed < settleTime)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / settleTime);
+            // Ease-out quad for settle
+            float scale = Mathf.Lerp(_drawBumpScale, 1f, t * t);
+            target.localScale = baseScale * scale;
+            yield return null;
+        }
+
+        target.localScale = baseScale;
+    }
+
+    private void SetButtonsInteractable(bool interactable)
+    {
+        if (_throwButton != null) _throwButton.interactable = interactable;
+        if (_throwAllButton != null) _throwAllButton.interactable = interactable;
+        if (_discardButton != null) _discardButton.interactable = interactable;
     }
 
     private void OnDiceClicked(int index)
     {
+        if (_drawAnimating) return;
+
         var phase = _roundManager?.HandSetupPhase;
         if (phase == null || !phase.WaitingForInput) return;
 
@@ -127,6 +246,8 @@ public class HandSetupPanel : UIPanel
 
     private void UpdateUI()
     {
+        if (_drawAnimating) return;
+
         var phase = _roundManager?.HandSetupPhase;
         int discardsRemaining = _roundManager?.DiscardsRemainingThisRound ?? 0;
 

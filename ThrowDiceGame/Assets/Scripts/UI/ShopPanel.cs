@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -43,17 +44,33 @@ public class ShopPanel : UIPanel
     [SerializeField] private Button _applyEnhancementButton;
     [SerializeField] private Button _cancelSelectionButton;
 
+    [Header("Draw Animation")]
+    [SerializeField]
+    [Tooltip("Delay between each die appearing during the draw sequence")]
+    private float _drawStaggerDelay = 0.08f;
+
+    [SerializeField]
+    [Tooltip("Scale multiplier at the peak of each die's appear bump")]
+    private float _drawBumpScale = 1.3f;
+
+    [SerializeField]
+    [Tooltip("Duration of each die's scale bump animation")]
+    private float _drawBumpDuration = 0.2f;
+
     [Header("References")]
     [SerializeField] private RoundManager _roundManager;
 
     private ShopManager _shopManager;
-    private List<InventoryDie> _displayedDice = new List<InventoryDie>(); // The random subset being displayed
+    private List<InventoryDie> _displayedDice = new List<InventoryDie>();
     private List<ShopItem> _currentShopItems = new List<ShopItem>();
     private List<GameObject> _shopItemDisplays = new List<GameObject>();
     private List<DiceDisplayItem> _diceDisplayItems = new List<DiceDisplayItem>();
+    private List<GameObject> _slotObjects = new List<GameObject>();
     private List<DiceDisplayItem> _selectedDice = new List<DiceDisplayItem>();
     private EnhancementData _pendingEnhancement;
     private bool _isSelectingDice;
+    private Coroutine _drawSequence;
+    private bool _drawAnimating;
 
     public void Initialize(ShopManager shopManager)
     {
@@ -259,15 +276,23 @@ public class ShopPanel : UIPanel
     /// </summary>
     private void PopulateDiceDisplay()
     {
-        // Clear existing dice displays
+        if (_drawSequence != null)
+            StopCoroutine(_drawSequence);
+
+        // Clear existing dice displays and slots
         foreach (var item in _diceDisplayItems)
         {
             if (item != null)
-            {
                 Destroy(item.gameObject);
-            }
         }
         _diceDisplayItems.Clear();
+
+        foreach (var slot in _slotObjects)
+        {
+            if (slot != null)
+                Destroy(slot);
+        }
+        _slotObjects.Clear();
         _displayedDice.Clear();
 
         if (_diceSelectionContainer == null)
@@ -307,22 +332,102 @@ public class ShopPanel : UIPanel
 
         Debug.Log($"ShopPanel: Displaying {_displayedDice.Count} of {allDice.Count} dice (hand limit: {handSize})");
 
-        // Create display items for the selected dice
+        _drawSequence = StartCoroutine(DrawDiceSequence());
+    }
+
+    private IEnumerator DrawDiceSequence()
+    {
+        _drawAnimating = true;
+
+        // Pre-create empty slots so the layout group allocates space up front
+        Vector2 slotSize = ((RectTransform)_diceDisplayPrefab.transform).sizeDelta;
+        for (int i = 0; i < _displayedDice.Count; i++)
+        {
+            var slot = CreateLayoutSlot(slotSize);
+            _slotObjects.Add(slot);
+        }
+
+        // Force layout to rebuild immediately so slots are positioned
+        LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)_diceSelectionContainer);
+
+        // Stagger-instantiate actual dice displays inside each slot
         for (int i = 0; i < _displayedDice.Count; i++)
         {
             var diceData = _displayedDice[i];
-            var item = Instantiate(_diceDisplayPrefab, _diceSelectionContainer);
+            var item = Instantiate(_diceDisplayPrefab, _slotObjects[i].transform);
+            StretchToParent((RectTransform)item.transform);
 
-            int index = i; // Capture for closure
-            DiceData capturedDice = diceData._dieType;
-
+            int index = i;
             item.Initialize(diceData, index, () => OnDiceClicked(item, index));
             _diceDisplayItems.Add(item);
+
+            StartCoroutine(AnimateScaleBump(item.transform));
+
+            if (i < _displayedDice.Count - 1)
+                yield return new WaitForSeconds(_drawStaggerDelay);
         }
+
+        yield return new WaitForSeconds(_drawBumpDuration);
+
+        _drawAnimating = false;
+        _drawSequence = null;
+    }
+
+    private GameObject CreateLayoutSlot(Vector2 size)
+    {
+        var slot = new GameObject("DiceSlot", typeof(RectTransform), typeof(LayoutElement));
+        slot.transform.SetParent(_diceSelectionContainer, false);
+        var le = slot.GetComponent<LayoutElement>();
+        le.preferredWidth = size.x;
+        le.preferredHeight = size.y;
+        return slot;
+    }
+
+    private static void StretchToParent(RectTransform rt)
+    {
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = Vector2.zero;
+        rt.offsetMax = Vector2.zero;
+    }
+
+    private IEnumerator AnimateScaleBump(Transform target)
+    {
+        Vector3 baseScale = target.localScale;
+        target.localScale = Vector3.zero;
+
+        float elapsed = 0f;
+        float halfDuration = _drawBumpDuration * 0.4f;
+
+        // Scale up to bump peak
+        while (elapsed < halfDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / halfDuration);
+            float scale = _drawBumpScale * (1f - (1f - t) * (1f - t));
+            target.localScale = baseScale * scale;
+            yield return null;
+        }
+
+        // Scale back down to normal
+        elapsed = 0f;
+        float settleTime = _drawBumpDuration - halfDuration;
+        while (elapsed < settleTime)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / settleTime);
+            float scale = Mathf.Lerp(_drawBumpScale, 1f, t * t);
+            target.localScale = baseScale * scale;
+            yield return null;
+        }
+
+        target.localScale = baseScale;
     }
 
     private void OnDiceClicked(DiceDisplayItem die, int index)
     {
+        if (_drawAnimating) return;
+
         // Only allow selection when actively selecting for an enhancement
         if (!_isSelectingDice || _pendingEnhancement == null)
         {
@@ -454,15 +559,27 @@ public class ShopPanel : UIPanel
 
     protected override void OnHide()
     {
-        // Clean up dice displays when hiding
+        if (_drawSequence != null)
+        {
+            StopCoroutine(_drawSequence);
+            _drawSequence = null;
+            _drawAnimating = false;
+        }
+
+        // Clean up dice displays and slots when hiding
         foreach (var item in _diceDisplayItems)
         {
             if (item != null)
-            {
                 Destroy(item.gameObject);
-            }
         }
         _diceDisplayItems.Clear();
+
+        foreach (var slot in _slotObjects)
+        {
+            if (slot != null)
+                Destroy(slot);
+        }
+        _slotObjects.Clear();
         _displayedDice.Clear();
         _selectedDice.Clear();
 
