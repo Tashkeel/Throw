@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 /// <summary>
@@ -208,12 +209,12 @@ public class CameraController : MonoBehaviour
         var mouse = Mouse.current;
         if (mouse == null) return;
 
-        // Use drag flags so UI panels with background images don't block orbit.
-        // We skip the IsPointerOverGameObject check entirely for left-click orbit
-        // because full-screen semi-transparent panel backgrounds would always block it.
-        // Button clicks produce near-zero mouse delta so orbit barely moves during clicks.
+        // Only start orbit drag when the click lands on the viewport, not on UI.
         if (mouse.leftButton.wasPressedThisFrame)
-            _isLeftDragging = true;
+        {
+            bool overUI = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+            _isLeftDragging = !overUI;
+        }
         if (mouse.leftButton.wasReleasedThisFrame)
             _isLeftDragging = false;
 

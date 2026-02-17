@@ -31,6 +31,7 @@ public class ShopPanel : UIPanel
     [SerializeField] private TextMeshProUGUI _titleText;
     [SerializeField] private TextMeshProUGUI _moneyText;
     [SerializeField] private Button _continueButton;
+    [SerializeField] private Button _rerollButton;
 
     [Header("Shop Items")]
     [SerializeField] private Transform _shopItemsContainer;
@@ -68,6 +69,7 @@ public class ShopPanel : UIPanel
     private List<GameObject> _slotObjects = new List<GameObject>();
     private List<DiceDisplayItem> _selectedDice = new List<DiceDisplayItem>();
     private EnhancementData _pendingEnhancement;
+    private ShopItemDisplay _pendingEnhancementDisplay;
     private bool _isSelectingDice;
     private Coroutine _drawSequence;
     private bool _drawAnimating;
@@ -79,6 +81,11 @@ public class ShopPanel : UIPanel
         if (_continueButton != null)
         {
             _continueButton.onClick.AddListener(OnContinueClicked);
+        }
+
+        if (_rerollButton != null)
+        {
+            _rerollButton.onClick.AddListener(OnRerollClicked);
         }
 
         if (_applyEnhancementButton != null)
@@ -112,10 +119,11 @@ public class ShopPanel : UIPanel
 
         _isSelectingDice = false;
         _pendingEnhancement = null;
+        _pendingEnhancementDisplay = null;
         _selectedDice.Clear();
 
         GenerateRandomShopItems();
-        PopulateDiceDisplay(); // Always populate dice when shop opens
+        PopulateDiceDisplay();
         RefreshDisplay();
     }
 
@@ -231,7 +239,7 @@ public class ShopPanel : UIPanel
         {
             display.Initialize(
                 shopItem.Enhancement,
-                () => StartDiceSelection(shopItem.Enhancement),
+                () => StartDiceSelection(shopItem.Enhancement, display),
                 () => _shopManager.CanAffordEnhancement(shopItem.Enhancement)
             );
         }
@@ -253,11 +261,12 @@ public class ShopPanel : UIPanel
         }
     }
 
-    private void StartDiceSelection(EnhancementData enhancement)
+    private void StartDiceSelection(EnhancementData enhancement, ShopItemDisplay display)
     {
         if (!_shopManager.CanAffordEnhancement(enhancement)) return;
 
         _pendingEnhancement = enhancement;
+        _pendingEnhancementDisplay = display;
         _isSelectingDice = true;
         _selectedDice.Clear();
 
@@ -272,7 +281,7 @@ public class ShopPanel : UIPanel
 
     /// <summary>
     /// Populates the dice display with random dice from inventory up to hand limit.
-    /// Called when shop opens to show a hand-sized sample of the player's dice.
+    /// Called once when shop opens to show a hand-sized sample of the player's dice.
     /// </summary>
     private void PopulateDiceDisplay()
     {
@@ -371,6 +380,34 @@ public class ShopPanel : UIPanel
 
         _drawAnimating = false;
         _drawSequence = null;
+    }
+
+    /// <summary>
+    /// Refreshes specific dice display items in place after their data has changed (e.g. enhancement applied).
+    /// </summary>
+    private void RefreshDiceDisplayItems(List<DiceDisplayItem> items)
+    {
+        foreach (var oldItem in items)
+        {
+            int index = _diceDisplayItems.IndexOf(oldItem);
+            if (index < 0 || index >= _slotObjects.Count) continue;
+
+            var inventoryDie = _displayedDice[index];
+            var slot = _slotObjects[index];
+
+            // Destroy the old display
+            Destroy(oldItem.gameObject);
+
+            // Create a fresh one in the same slot
+            var newItem = Instantiate(_diceDisplayPrefab, slot.transform);
+            StretchToParent((RectTransform)newItem.transform);
+
+            int capturedIndex = index;
+            newItem.Initialize(inventoryDie, capturedIndex, () => OnDiceClicked(newItem, capturedIndex));
+            _diceDisplayItems[index] = newItem;
+
+            StartCoroutine(AnimateScaleBump(newItem.transform));
+        }
     }
 
     private GameObject CreateLayoutSlot(Vector2 size)
@@ -500,10 +537,15 @@ public class ShopPanel : UIPanel
             _cancelSelectionButton.gameObject.SetActive(isSelectingForEnhancement);
         }
 
-        // Hide continue button during enhancement selection
+        // Hide continue/reroll buttons during enhancement selection
         if (_continueButton != null)
         {
             _continueButton.gameObject.SetActive(!isSelectingForEnhancement);
+        }
+
+        if (_rerollButton != null)
+        {
+            _rerollButton.gameObject.SetActive(!isSelectingForEnhancement);
         }
 
         // Keep shop items visible always (user can still see what they're buying)
@@ -514,19 +556,41 @@ public class ShopPanel : UIPanel
         if (_pendingEnhancement == null || _selectedDice.Count != _pendingEnhancement.RequiredDiceCount)
             return;
 
-        if (_shopManager.ApplyEnhancement(_pendingEnhancement, new List<DiceDisplayItem>(_selectedDice)))
+        // Capture references before clearing state
+        var affectedDice = new List<DiceDisplayItem>(_selectedDice);
+        var consumedDisplay = _pendingEnhancementDisplay;
+
+        if (_shopManager.ApplyEnhancement(_pendingEnhancement, affectedDice))
         {
             Debug.Log($"Applied enhancement: {_pendingEnhancement.DisplayName}");
+
+            // Consume the shop item
+            if (consumedDisplay != null)
+            {
+                consumedDisplay.MarkSoldOut();
+            }
 
             // Reset selection state
             _isSelectingDice = false;
             _pendingEnhancement = null;
+            _pendingEnhancementDisplay = null;
             _selectedDice.Clear();
 
-            // Re-populate dice display since inventory changed
-            PopulateDiceDisplay();
-            RefreshDisplay();
+            // Refresh only the affected dice displays in place (don't redraw entire hand)
+            RefreshDiceDisplayItems(affectedDice);
+            UpdateDiceSelectionUI();
         }
+    }
+
+    private void OnRerollClicked()
+    {
+        if (_isSelectingDice)
+        {
+            CancelDiceSelection();
+        }
+
+        GenerateRandomShopItems();
+        PopulateShopItems();
     }
 
     private void OnCancelSelectionClicked()
@@ -538,6 +602,7 @@ public class ShopPanel : UIPanel
     {
         _isSelectingDice = false;
         _pendingEnhancement = null;
+        _pendingEnhancementDisplay = null;
         _selectedDice.Clear();
 
         // Clear visual selection on dice (don't destroy them - they stay visible)
@@ -596,6 +661,11 @@ public class ShopPanel : UIPanel
         if (_continueButton != null)
         {
             _continueButton.onClick.RemoveListener(OnContinueClicked);
+        }
+
+        if (_rerollButton != null)
+        {
+            _rerollButton.onClick.RemoveListener(OnRerollClicked);
         }
 
         if (_applyEnhancementButton != null)
