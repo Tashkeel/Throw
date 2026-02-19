@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 /// <summary>
@@ -14,7 +15,8 @@ public class HandSetupPanel : UIPanel
     [SerializeField] private TextMeshProUGUI _throwsRemainingText;
     [SerializeField] private Transform _diceDisplayContainer;
     [SerializeField] private Button _throwButton;
-    [SerializeField] private Button _throwAllButton;
+    [FormerlySerializedAs("_throwAllButton")]
+    [SerializeField] private Button _selectAllButton;
     [SerializeField] private Button _discardButton;
 
     [Header("Dice Display Prefab")]
@@ -49,9 +51,9 @@ public class HandSetupPanel : UIPanel
             _throwButton.onClick.AddListener(OnThrowClicked);
         }
 
-        if (_throwAllButton != null)
+        if (_selectAllButton != null)
         {
-            _throwAllButton.onClick.AddListener(OnThrowAllClicked);
+            _selectAllButton.onClick.AddListener(OnSelectAllClicked);
         }
 
         if (_discardButton != null)
@@ -199,7 +201,7 @@ public class HandSetupPanel : UIPanel
     private void SetButtonsInteractable(bool interactable)
     {
         if (_throwButton != null) _throwButton.interactable = interactable;
-        if (_throwAllButton != null) _throwAllButton.interactable = interactable;
+        if (_selectAllButton != null) _selectAllButton.interactable = interactable;
         if (_discardButton != null) _discardButton.interactable = interactable;
     }
 
@@ -273,9 +275,9 @@ public class HandSetupPanel : UIPanel
             _throwButton.interactable = _selectedIndices.Count > 0;
         }
 
-        if (_throwAllButton != null)
+        if (_selectAllButton != null)
         {
-            _throwAllButton.interactable = _roundManager?.Hand != null && _roundManager.Hand.Count > 0;
+            _selectAllButton.interactable = _roundManager?.Hand != null && _roundManager.Hand.Count > 0;
         }
     }
 
@@ -295,15 +297,31 @@ public class HandSetupPanel : UIPanel
         _roundManager?.ConfirmHandSetup(new List<int>(_selectedIndices));
     }
 
-    private void OnThrowAllClicked()
+    private void OnSelectAllClicked()
     {
-        if (_roundManager?.Hand == null || _roundManager.Hand.Count == 0) return;
+        if (_drawAnimating || _roundManager?.Hand == null || _roundManager.Hand.Count == 0) return;
 
-        var allIndices = new List<int>();
-        for (int i = 0; i < _roundManager.Hand.Count; i++)
-            allIndices.Add(i);
+        var phase = _roundManager.HandSetupPhase;
+        if (phase == null || !phase.WaitingForInput) return;
 
-        _roundManager.ConfirmHandSetup(allIndices);
+        bool allSelected = _selectedIndices.Count == _roundManager.Hand.Count;
+
+        // Clear current selection visually
+        _selectedIndices.Clear();
+        for (int i = 0; i < _diceDisplayItems.Count; i++)
+            _diceDisplayItems[i]?.SetSelected(false);
+
+        // If not everything was selected, select all; otherwise leave all deselected (toggle)
+        if (!allSelected)
+        {
+            for (int i = 0; i < _roundManager.Hand.Count; i++)
+                _selectedIndices.Add(i);
+
+            for (int i = 0; i < _diceDisplayItems.Count; i++)
+                _diceDisplayItems[i]?.SetSelected(true);
+        }
+
+        UpdateUI();
     }
 
     private void OnDestroy()
@@ -313,9 +331,9 @@ public class HandSetupPanel : UIPanel
             _throwButton.onClick.RemoveListener(OnThrowClicked);
         }
 
-        if (_throwAllButton != null)
+        if (_selectAllButton != null)
         {
-            _throwAllButton.onClick.RemoveListener(OnThrowAllClicked);
+            _selectAllButton.onClick.RemoveListener(OnSelectAllClicked);
         }
 
         if (_discardButton != null)

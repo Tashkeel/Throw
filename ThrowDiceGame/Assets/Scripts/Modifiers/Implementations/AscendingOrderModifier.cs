@@ -6,26 +6,23 @@ using UnityEngine;
 /// "Ascending Order" - rewards diversity over matching.
 /// Conflicts with MatchingBonusModifier and Synergy enhancement.
 /// </summary>
-public class AscendingOrderModifier : BaseModifier
+[CreateAssetMenu(fileName = "MOD_AscendingOrder", menuName = "Dice Game/Modifiers/Ascending Order")]
+public class AscendingOrderModifier : ModifierData
 {
     [Header("Ascending Order Settings")]
     [SerializeField]
     [Tooltip("Score multiplier when all dice show unique values (e.g., 1.5 = +50%)")]
     private float _uniqueMultiplier = 1.5f;
 
-    private void Reset()
-    {
-        _name = "Ascending Order";
-        _description = "If all dice show different values, +50% bonus to throw score.";
-        _timing = ScoreModifierTiming.AfterThrow;
-    }
+    public override string Name => "Ascending Order";
+    protected override string DefaultDescription => $"If all dice show different values, +{(_uniqueMultiplier - 1f) * 100:F0}% bonus to throw score.";
+    public override ScoreModifierTiming Timing => ScoreModifierTiming.AfterThrow;
 
     public override int ModifyScore(ScoreModifierContext context)
     {
         if (context.AllDieValues == null || context.AllDieValues.Length < 2)
             return context.CurrentScore;
 
-        // Check if all values are unique
         var seen = new HashSet<int>();
         bool allUnique = true;
         foreach (int value in context.AllDieValues)

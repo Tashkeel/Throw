@@ -5,19 +5,17 @@ using UnityEngine;
 /// "Snake Eyes Gambit" - each 1 rolled multiplies the total by 1.5x.
 /// Encourages keeping low-value dice with 1s rather than upgrading everything.
 /// </summary>
-public class SnakeEyesGambitModifier : BaseModifier
+[CreateAssetMenu(fileName = "MOD_SnakeEyesGambit", menuName = "Dice Game/Modifiers/Snake Eyes Gambit")]
+public class SnakeEyesGambitModifier : ModifierData
 {
     [Header("Snake Eyes Settings")]
     [SerializeField]
     [Tooltip("Multiplier per die showing 1 (e.g., 1.5 means 1.5x per 1)")]
     private float _multiplierPerOne = 1.5f;
 
-    private void Reset()
-    {
-        _name = "Snake Eyes Gambit";
-        _description = "Each die showing 1 multiplies throw score by 1.5x.";
-        _timing = ScoreModifierTiming.AfterThrow;
-    }
+    public override string Name => "Snake Eyes Gambit";
+    protected override string DefaultDescription => $"Each die showing 1 multiplies throw score by {_multiplierPerOne:F1}x.";
+    public override ScoreModifierTiming Timing => ScoreModifierTiming.AfterThrow;
 
     public override int ModifyScore(ScoreModifierContext context)
     {

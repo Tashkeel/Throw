@@ -4,19 +4,17 @@ using UnityEngine;
 /// Enhancement that adds a fixed value to all faces of a die.
 /// "Power Up" - makes every roll better.
 /// </summary>
-public class AddValueEnhancement : BaseEnhancement
+[CreateAssetMenu(fileName = "ENH_AddValue", menuName = "Dice Game/Enhancements/Add Value")]
+public class AddValueEnhancement : EnhancementData
 {
     [Header("Add Value Settings")]
     [SerializeField]
     [Tooltip("Value to add to each face")]
     private int _valueToAdd = 1;
 
-    private void Reset()
-    {
-        _name = "Power Up";
-        _description = "Adds +1 to all faces of a die.";
-        _maxDiceCount = 1;
-    }
+    public override string Name => "Power Up";
+    protected override string DefaultDescription => $"Adds +{_valueToAdd} to all faces of a die.";
+    public override int MaxDiceCount => 1;
 
     public override int[] ApplyToDie(int[] currentValues)
     {
@@ -28,7 +26,7 @@ public class AddValueEnhancement : BaseEnhancement
             modifiedValues[i] = currentValues[i] + _valueToAdd;
         }
 
-        Debug.Log($"[{_name}] Applied +{_valueToAdd} to all faces of die.");
+        Debug.Log($"[Power Up] Applied +{_valueToAdd} to all faces of die.");
         return modifiedValues;
     }
 }

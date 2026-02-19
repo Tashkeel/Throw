@@ -5,19 +5,17 @@ using System.Linq;
 /// Enhancement that boosts the lowest face value on a die.
 /// "Lucky Break" - raises the floor on bad rolls.
 /// </summary>
-public class BoostLowestEnhancement : BaseEnhancement
+[CreateAssetMenu(fileName = "ENH_BoostLowest", menuName = "Dice Game/Enhancements/Boost Lowest")]
+public class BoostLowestEnhancement : EnhancementData
 {
     [Header("Boost Settings")]
     [SerializeField]
     [Tooltip("What to set the lowest value to")]
     private int _newMinimumValue = 3;
 
-    private void Reset()
-    {
-        _name = "Lucky Break";
-        _description = "Raises the lowest face value to 3.";
-        _maxDiceCount = 1;
-    }
+    public override string Name => "Lucky Break";
+    protected override string DefaultDescription => $"Raises the lowest face value to {_newMinimumValue}.";
+    public override int MaxDiceCount => 1;
 
     public override int[] ApplyToDie(int[] currentValues)
     {
@@ -25,10 +23,8 @@ public class BoostLowestEnhancement : BaseEnhancement
 
         int[] modifiedValues = (int[])currentValues.Clone();
 
-        // Find the minimum value
         int minValue = modifiedValues.Min();
 
-        // Raise all instances of the minimum value
         for (int i = 0; i < modifiedValues.Length; i++)
         {
             if (modifiedValues[i] == minValue && modifiedValues[i] < _newMinimumValue)
@@ -37,7 +33,7 @@ public class BoostLowestEnhancement : BaseEnhancement
             }
         }
 
-        Debug.Log($"[{_name}] Boosted lowest face values from {minValue} to {_newMinimumValue}.");
+        Debug.Log($"[Lucky Break] Boosted lowest face values from {minValue} to {_newMinimumValue}.");
         return modifiedValues;
     }
 }

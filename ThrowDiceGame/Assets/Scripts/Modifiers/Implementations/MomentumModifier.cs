@@ -5,19 +5,17 @@ using UnityEngine;
 /// "Momentum" - each consecutive throw scores more than the last.
 /// Creates a tension: use all throws for max score, or win early for more money.
 /// </summary>
-public class MomentumModifier : BaseModifier
+[CreateAssetMenu(fileName = "MOD_Momentum", menuName = "Dice Game/Modifiers/Momentum")]
+public class MomentumModifier : ModifierData
 {
     [Header("Momentum Settings")]
     [SerializeField]
     [Tooltip("Score bonus percentage per throw after the first (e.g., 0.2 = +20% per throw)")]
     private float _bonusPerThrow = 0.2f;
 
-    private void Reset()
-    {
-        _name = "Momentum";
-        _description = "Each throw scores +20% more than the last. (1st: normal, 2nd: +20%, 3rd: +40%)";
-        _timing = ScoreModifierTiming.AfterThrow;
-    }
+    public override string Name => "Momentum";
+    protected override string DefaultDescription => $"Each throw scores +{_bonusPerThrow * 100:F0}% more than the last. (1st: normal, 2nd: +{_bonusPerThrow * 100:F0}%, 3rd: +{_bonusPerThrow * 200:F0}%)";
+    public override ScoreModifierTiming Timing => ScoreModifierTiming.AfterThrow;
 
     public override int ModifyScore(ScoreModifierContext context)
     {

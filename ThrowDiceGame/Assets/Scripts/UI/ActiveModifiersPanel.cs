@@ -57,7 +57,6 @@ public class ActiveModifiersPanel : MonoBehaviour
     {
         if (_modifierContainer != null) return;
 
-        // Build container programmatically if not assigned
         var containerObj = new GameObject("ModifierContainer", typeof(RectTransform));
         containerObj.transform.SetParent(transform, false);
 
@@ -86,7 +85,7 @@ public class ActiveModifiersPanel : MonoBehaviour
         ClearSlots();
 
         int maxSlots = 4;
-        IReadOnlyList<IScoreModifier> activeModifiers = null;
+        IReadOnlyList<ModifierData> activeModifiers = null;
 
         if (ModifierManager.Instance != null)
         {
@@ -96,10 +95,8 @@ public class ActiveModifiersPanel : MonoBehaviour
 
         int filledCount = activeModifiers?.Count ?? 0;
 
-        // Update title
         UpdateTitle(filledCount, maxSlots);
 
-        // Create filled slots
         if (activeModifiers != null)
         {
             foreach (var modifier in activeModifiers)
@@ -108,7 +105,6 @@ public class ActiveModifiersPanel : MonoBehaviour
             }
         }
 
-        // Create empty slots for remaining capacity
         int emptyCount = maxSlots - filledCount;
         for (int i = 0; i < emptyCount; i++)
         {
@@ -120,7 +116,6 @@ public class ActiveModifiersPanel : MonoBehaviour
     {
         if (_titleText == null)
         {
-            // Create title if not assigned
             var titleObj = new GameObject("Title", typeof(RectTransform));
             titleObj.transform.SetParent(transform, false);
             titleObj.transform.SetAsFirstSibling();
@@ -136,7 +131,7 @@ public class ActiveModifiersPanel : MonoBehaviour
         _titleText.text = $"Modifiers ({filled}/{max})";
     }
 
-    private void CreateFilledSlot(IScoreModifier modifier)
+    private void CreateFilledSlot(ModifierData modifier)
     {
         if (_modifierContainer == null) return;
 
@@ -144,14 +139,7 @@ public class ActiveModifiersPanel : MonoBehaviour
         slotObj.transform.SetParent(_modifierContainer, false);
 
         var displayItem = slotObj.AddComponent<ModifierDisplayItem>();
-
-        ModifierData data = null;
-        if (ModifierManager.Instance != null)
-        {
-            data = ModifierManager.Instance.GetModifierData(modifier);
-        }
-
-        displayItem.Initialize(modifier, data, OnSellClicked);
+        displayItem.Initialize(modifier, OnSellClicked);
         _slotObjects.Add(slotObj);
     }
 
@@ -165,7 +153,6 @@ public class ActiveModifiersPanel : MonoBehaviour
         var bg = slotObj.AddComponent<Image>();
         bg.color = EmptySlotColor;
 
-        // Dashed border effect via outline
         var outline = slotObj.AddComponent<Outline>();
         outline.effectColor = EmptySlotBorderColor;
         outline.effectDistance = new Vector2(1, 1);
@@ -175,7 +162,6 @@ public class ActiveModifiersPanel : MonoBehaviour
         le.preferredHeight = 100;
         le.flexibleWidth = 0;
 
-        // Placeholder text
         var textObj = new GameObject("Placeholder", typeof(RectTransform));
         textObj.transform.SetParent(slotObj.transform, false);
 
@@ -195,7 +181,7 @@ public class ActiveModifiersPanel : MonoBehaviour
         _slotObjects.Add(slotObj);
     }
 
-    private void OnSellClicked(IScoreModifier modifier)
+    private void OnSellClicked(ModifierData modifier)
     {
         if (_shopManager != null)
         {

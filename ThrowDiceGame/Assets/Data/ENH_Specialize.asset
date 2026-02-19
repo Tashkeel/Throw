@@ -9,9 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9bc0a92ef2441424ba40dfb6b5597218, type: 3}
+  m_Script: {fileID: 11500000, guid: 8539c5ec3a81b684ba391ebf53b2abef, type: 3}
   m_Name: ENH_Specialize
-  m_EditorClassIdentifier: Assembly-CSharp::EnhancementData
-  _enhancementPrefab: {fileID: -6459302127925630837, guid: 59505c6a0523c9e4a870f8ec6c53091c, type: 3}
+  m_EditorClassIdentifier: Assembly-CSharp::SpecializeEnhancement
   _icon: {fileID: 0}
-  _cost: 35
+  _cost: 30
+  _rarity: 0

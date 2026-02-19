@@ -4,19 +4,17 @@ using UnityEngine;
 /// Enhancement that boosts two dice together - they both get better.
 /// "Synergy" - two dice working together.
 /// </summary>
-public class SynergyEnhancement : BaseEnhancement
+[CreateAssetMenu(fileName = "ENH_Synergy", menuName = "Dice Game/Enhancements/Synergy")]
+public class SynergyEnhancement : EnhancementData
 {
     [Header("Synergy Settings")]
     [SerializeField]
     [Tooltip("Value to add to each face of both dice")]
     private int _valueToAdd = 2;
 
-    private void Reset()
-    {
-        _name = "Synergy";
-        _description = "Select 2 dice. Both get +2 to all faces.";
-        _maxDiceCount = 2;
-    }
+    public override string Name => "Synergy";
+    protected override string DefaultDescription => $"Select 2 dice. Both get +{_valueToAdd} to all faces.";
+    public override int MaxDiceCount => 2;
 
     public override int[] ApplyToDie(int[] currentValues)
     {
@@ -28,7 +26,7 @@ public class SynergyEnhancement : BaseEnhancement
             modifiedValues[i] = currentValues[i] + _valueToAdd;
         }
 
-        Debug.Log($"[{_name}] Applied +{_valueToAdd} synergy bonus to die.");
+        Debug.Log($"[Synergy] Applied +{_valueToAdd} synergy bonus to die.");
         return modifiedValues;
     }
 }

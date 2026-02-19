@@ -9,9 +9,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9bc0a92ef2441424ba40dfb6b5597218, type: 3}
+  m_Script: {fileID: 11500000, guid: e78dbfc6616d2ff499cc1aac7e8c8388, type: 3}
   m_Name: ENH_Polarize
-  m_EditorClassIdentifier: Assembly-CSharp::EnhancementData
-  _enhancementPrefab: {fileID: -6063055800759680146, guid: 4c1bd1eab47630443b6e8463932d20cb, type: 3}
+  m_EditorClassIdentifier: Assembly-CSharp::PolarizeEnhancement
   _icon: {fileID: 0}
   _cost: 30
+  _rarity: 0
+  _lowFaceValue: 1
+  _highFaceBonus: 2

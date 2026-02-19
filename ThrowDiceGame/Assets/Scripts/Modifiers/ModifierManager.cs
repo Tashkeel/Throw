@@ -12,9 +12,7 @@ public class ModifierManager : MonoBehaviour
     [Tooltip("Maximum number of modifiers that can be equipped at once")]
     private int _maxModifiers = 4;
 
-    private List<IScoreModifier> _activeModifiers = new List<IScoreModifier>();
-    private Dictionary<IScoreModifier, ModifierData> _modifierDataMap = new Dictionary<IScoreModifier, ModifierData>();
-    private Transform _modifierContainer;
+    private List<ModifierData> _activeModifiers = new List<ModifierData>();
 
     /// <summary>
     /// Singleton instance for easy access.
@@ -30,7 +28,7 @@ public class ModifierManager : MonoBehaviour
     /// <summary>
     /// Read-only list of active modifiers.
     /// </summary>
-    public IReadOnlyList<IScoreModifier> ActiveModifiers => _activeModifiers;
+    public IReadOnlyList<ModifierData> ActiveModifiers => _activeModifiers;
 
     /// <summary>
     /// Maximum number of modifiers allowed.
@@ -55,14 +53,10 @@ public class ModifierManager : MonoBehaviour
             return;
         }
         Instance = this;
-
-        // Create container for modifier instances
-        _modifierContainer = new GameObject("ModifierInstances").transform;
-        _modifierContainer.SetParent(transform);
     }
 
     /// <summary>
-    /// Adds a modifier from ModifierData. Respects capacity.
+    /// Adds a modifier. Respects capacity.
     /// </summary>
     public bool AddModifier(ModifierData modifierData)
     {
@@ -74,53 +68,25 @@ public class ModifierManager : MonoBehaviour
             return false;
         }
 
-        var modifier = modifierData.CreateModifierInstance(_modifierContainer);
-        if (modifier == null) return false;
-
-        _activeModifiers.Add(modifier);
-        _modifierDataMap[modifier] = modifierData;
+        _activeModifiers.Add(modifierData);
+        modifierData.OnActivated();
         OnModifiersChanged?.Invoke();
         GameEvents.RaiseModifiersChanged();
-        Debug.Log($"Modifier added: {modifier.Name} ({_activeModifiers.Count}/{_maxModifiers})");
+        Debug.Log($"Modifier added: {modifierData.Name} ({_activeModifiers.Count}/{_maxModifiers})");
         return true;
-    }
-
-    /// <summary>
-    /// Adds a modifier instance directly. Respects capacity.
-    /// Note: No ModifierData tracking for direct adds.
-    /// </summary>
-    public void AddModifier(IScoreModifier modifier)
-    {
-        if (modifier == null) return;
-
-        if (IsAtCapacity)
-        {
-            Debug.LogWarning($"Cannot add modifier '{modifier.Name}': at capacity ({_maxModifiers}). No ModifierData tracking for direct adds.");
-            return;
-        }
-
-        _activeModifiers.Add(modifier);
-        OnModifiersChanged?.Invoke();
-        Debug.Log($"Modifier added (direct): {modifier.Name}");
     }
 
     /// <summary>
     /// Removes a modifier.
     /// </summary>
-    public bool RemoveModifier(IScoreModifier modifier)
+    public bool RemoveModifier(ModifierData modifier)
     {
         if (modifier == null) return false;
 
         bool removed = _activeModifiers.Remove(modifier);
         if (removed)
         {
-            _modifierDataMap.Remove(modifier);
-
-            // Destroy the MonoBehaviour if it is one
-            if (modifier is MonoBehaviour mb)
-            {
-                Destroy(mb.gameObject);
-            }
+            modifier.OnDeactivated();
             OnModifiersChanged?.Invoke();
             GameEvents.RaiseModifiersChanged();
             Debug.Log($"Modifier removed: {modifier.Name} ({_activeModifiers.Count}/{_maxModifiers})");
@@ -135,51 +101,30 @@ public class ModifierManager : MonoBehaviour
     {
         foreach (var modifier in _activeModifiers)
         {
-            if (modifier is MonoBehaviour mb)
-            {
-                Destroy(mb.gameObject);
-            }
+            modifier.OnDeactivated();
         }
         _activeModifiers.Clear();
-        _modifierDataMap.Clear();
         OnModifiersChanged?.Invoke();
         GameEvents.RaiseModifiersChanged();
         Debug.Log("All modifiers cleared.");
     }
 
     /// <summary>
-    /// Checks if a modifier from the given ModifierData is currently owned/active.
+    /// Checks if the given ModifierData is currently active.
     /// </summary>
     public bool IsModifierOwned(ModifierData modifierData)
     {
         if (modifierData == null) return false;
-        return _modifierDataMap.ContainsValue(modifierData);
-    }
-
-    /// <summary>
-    /// Gets the ModifierData associated with an active modifier, or null if not tracked.
-    /// </summary>
-    public ModifierData GetModifierData(IScoreModifier modifier)
-    {
-        if (modifier != null && _modifierDataMap.TryGetValue(modifier, out var data))
-        {
-            return data;
-        }
-        return null;
+        return _activeModifiers.Contains(modifierData);
     }
 
     /// <summary>
     /// Gets the sell price for a modifier (half of purchase cost).
-    /// Returns 0 if the modifier has no associated ModifierData.
     /// </summary>
-    public int GetSellPrice(IScoreModifier modifier)
+    public int GetSellPrice(ModifierData modifier)
     {
-        var data = GetModifierData(modifier);
-        if (data != null)
-        {
-            return data.Cost / 2;
-        }
-        return 0;
+        if (modifier == null) return 0;
+        return modifier.Cost / 2;
     }
 
     /// <summary>
@@ -250,7 +195,6 @@ public class ModifierManager : MonoBehaviour
     {
         if (dieValues == null || dieValues.Length == 0) return 0;
 
-        // First, apply per-die modifiers
         int totalScore = 0;
         for (int i = 0; i < dieValues.Length; i++)
         {
@@ -258,7 +202,6 @@ public class ModifierManager : MonoBehaviour
             totalScore += modifiedDieValue;
         }
 
-        // Then apply after-throw modifiers
         totalScore = ApplyAfterThrowModifiers(totalScore, dieValues, throwNumber, roundNumber);
 
         return totalScore;

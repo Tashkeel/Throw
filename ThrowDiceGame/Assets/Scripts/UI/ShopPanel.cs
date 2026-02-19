@@ -19,6 +19,7 @@ public class ShopItem
     public int Cost => IsModifier ? Modifier.Cost : Enhancement?.Cost ?? 0;
     public Sprite Icon => IsModifier ? Modifier.Icon : Enhancement?.Icon;
     public int RequiredDiceCount => IsEnhancement ? Enhancement.RequiredDiceCount : 0;
+    public ItemRarity Rarity => IsModifier ? Modifier.Rarity : Enhancement?.Rarity ?? ItemRarity.Common;
 }
 
 /// <summary>
@@ -57,6 +58,23 @@ public class ShopPanel : UIPanel
     [SerializeField]
     [Tooltip("Duration of each die's scale bump animation")]
     private float _drawBumpDuration = 0.2f;
+
+    [Header("Item Description (Hover)")]
+    [SerializeField]
+    [Tooltip("Root GameObject of the hover description box — toggled on/off")]
+    private GameObject _descriptionPanel;
+
+    [SerializeField]
+    [Tooltip("Displays the hovered item's name")]
+    private TextMeshProUGUI _descriptionNameText;
+
+    [SerializeField]
+    [Tooltip("Displays the hovered item's rarity, coloured by tier")]
+    private TextMeshProUGUI _descriptionRarityText;
+
+    [SerializeField]
+    [Tooltip("Displays the hovered item's full description")]
+    private TextMeshProUGUI _descriptionBodyText;
 
     [Header("References")]
     [SerializeField] private RoundManager _roundManager;
@@ -120,6 +138,9 @@ public class ShopPanel : UIPanel
         _pendingEnhancementDisplay = null;
         _selectedDice.Clear();
 
+        if (_descriptionPanel != null)
+            _descriptionPanel.SetActive(false);
+
         GenerateRandomShopItems();
         PopulateDiceDisplay();
         RefreshDisplay();
@@ -135,24 +156,46 @@ public class ShopPanel : UIPanel
         if (_shopManager != null)
         {
             foreach (var modifier in _shopManager.GetUnownedModifiers())
-            {
                 allItems.Add(new ShopItem { Modifier = modifier });
-            }
 
             foreach (var enhancement in _shopManager.AvailableEnhancements)
-            {
                 allItems.Add(new ShopItem { Enhancement = enhancement });
-            }
         }
 
-        // Shuffle and pick items for slots
-        ShuffleList(allItems);
+        if (allItems.Count == 0) return;
 
-        int itemCount = Mathf.Min(_numberOfShopSlots, allItems.Count);
-        for (int i = 0; i < itemCount; i++)
+        // Fill each slot using rarity-weighted sampling without replacement
+        var remaining = new List<ShopItem>(allItems);
+        int slotsToFill = Mathf.Min(_numberOfShopSlots, remaining.Count);
+
+        for (int i = 0; i < slotsToFill; i++)
         {
-            _currentShopItems.Add(allItems[i]);
+            if (remaining.Count == 0) break;
+
+            ItemRarity targetRarity = RollRarity();
+
+            // Prefer items of the rolled rarity; fall back to any remaining item
+            var candidates = remaining.FindAll(item => item.Rarity == targetRarity);
+            if (candidates.Count == 0)
+                candidates = remaining;
+
+            var selected = candidates[Random.Range(0, candidates.Count)];
+            _currentShopItems.Add(selected);
+            remaining.Remove(selected);
         }
+    }
+
+    /// <summary>
+    /// Rolls a rarity tier according to configured probabilities:
+    /// 50% Common, 30% Uncommon, 15% Rare, 5% Legendary.
+    /// </summary>
+    private static ItemRarity RollRarity()
+    {
+        float roll = Random.value;
+        if (roll < 0.50f) return ItemRarity.Common;
+        if (roll < 0.80f) return ItemRarity.Uncommon;
+        if (roll < 0.95f) return ItemRarity.Rare;
+        return ItemRarity.Legendary;
     }
 
     private void ShuffleList<T>(List<T> list)
@@ -230,7 +273,9 @@ public class ShopPanel : UIPanel
             display.Initialize(
                 shopItem.Modifier,
                 () => PurchaseModifier(shopItem.Modifier, display),
-                () => _shopManager.CanPurchaseModifier(shopItem.Modifier)
+                () => _shopManager.CanPurchaseModifier(shopItem.Modifier),
+                OnItemHoverEnter,
+                OnItemHoverExit
             );
         }
         else if (shopItem.IsEnhancement)
@@ -238,7 +283,9 @@ public class ShopPanel : UIPanel
             display.Initialize(
                 shopItem.Enhancement,
                 () => StartDiceSelection(shopItem.Enhancement, display),
-                () => _shopManager.CanAffordEnhancement(shopItem.Enhancement)
+                () => _shopManager.CanAffordEnhancement(shopItem.Enhancement),
+                OnItemHoverEnter,
+                OnItemHoverExit
             );
         }
 
@@ -610,6 +657,30 @@ public class ShopPanel : UIPanel
         }
 
         UpdateDiceSelectionUI();
+    }
+
+    private void OnItemHoverEnter(string itemName, string description, ItemRarity rarity)
+    {
+        if (_descriptionPanel != null)
+            _descriptionPanel.SetActive(true);
+
+        if (_descriptionNameText != null)
+            _descriptionNameText.text = itemName;
+
+        if (_descriptionRarityText != null)
+        {
+            _descriptionRarityText.text = rarity.ToString();
+            _descriptionRarityText.color = ShopItemDisplay.GetRarityColor(rarity);
+        }
+
+        if (_descriptionBodyText != null)
+            _descriptionBodyText.text = description;
+    }
+
+    private void OnItemHoverExit()
+    {
+        if (_descriptionPanel != null)
+            _descriptionPanel.SetActive(false);
     }
 
     private void OnContinueClicked()

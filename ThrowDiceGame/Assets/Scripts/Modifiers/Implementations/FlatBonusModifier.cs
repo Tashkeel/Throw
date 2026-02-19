@@ -4,18 +4,16 @@ using UnityEngine;
 /// Sample modifier that adds a flat bonus after all dice are scored.
 /// "Steady Hand" - consistent bonus to every throw.
 /// </summary>
-public class FlatBonusModifier : BaseModifier
+[CreateAssetMenu(fileName = "MOD_FlatBonus", menuName = "Dice Game/Modifiers/Flat Bonus")]
+public class FlatBonusModifier : ModifierData
 {
     [Header("Flat Bonus Settings")]
     [SerializeField]
     private int _bonusAmount = 5;
 
-    private void Reset()
-    {
-        _name = "Steady Hand";
-        _description = "Adds +5 to every throw.";
-        _timing = ScoreModifierTiming.AfterThrow;
-    }
+    public override string Name => "Steady Hand";
+    protected override string DefaultDescription => $"Adds +{_bonusAmount} to every throw.";
+    public override ScoreModifierTiming Timing => ScoreModifierTiming.AfterThrow;
 
     public override int ModifyScore(ScoreModifierContext context)
     {

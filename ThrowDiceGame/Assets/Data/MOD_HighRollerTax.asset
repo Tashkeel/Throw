@@ -9,9 +9,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8b823c7a7741a5640b49a175843f9990, type: 3}
+  m_Script: {fileID: 11500000, guid: d7cc11bbc654dcd41a6ef93a6bd9c1bf, type: 3}
   m_Name: MOD_HighRollerTax
-  m_EditorClassIdentifier: Assembly-CSharp::ModifierData
-  _modifierPrefab: {fileID: 1665292750726757832, guid: 2bf57c0af002ed44a8c4f8a39f99b641, type: 3}
+  m_EditorClassIdentifier: Assembly-CSharp::HighRollerTaxModifier
   _icon: {fileID: 0}
-  _cost: 45
+  _cost: 50
+  _rarity: 0
+  _highThreshold: 4
+  _lowThreshold: 2
+  _highMultiplier: 2

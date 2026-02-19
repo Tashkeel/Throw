@@ -5,7 +5,8 @@ using UnityEngine;
 /// "Economy of Scale" - earn $2 for every point scored above the round goal.
 /// Encourages overshooting the goal for long-term economic scaling.
 /// </summary>
-public class EconomyOfScaleModifier : BaseModifier
+[CreateAssetMenu(fileName = "MOD_EconomyOfScale", menuName = "Dice Game/Modifiers/Economy of Scale")]
+public class EconomyOfScaleModifier : ModifierData
 {
     [Header("Economy of Scale Settings")]
     [SerializeField]
@@ -15,22 +16,23 @@ public class EconomyOfScaleModifier : BaseModifier
     private int _cachedScoreGoal;
     private int _latestCumulativeScore;
 
-    private void Reset()
-    {
-        _name = "Economy of Scale";
-        _description = "Earn $2 for every point scored above the round goal.";
-        _timing = ScoreModifierTiming.AfterThrow;
-    }
+    public override string Name => "Economy of Scale";
+    protected override string DefaultDescription => $"Earn ${_moneyPerSurplusPoint} for every point scored above the round goal.";
+    public override ScoreModifierTiming Timing => ScoreModifierTiming.AfterThrow;
 
-    private void OnEnable()
+    public override void OnActivated()
     {
+        // Reset per-run state so editor play sessions start clean
+        _cachedScoreGoal = 0;
+        _latestCumulativeScore = 0;
+
         GameEvents.OnScoreGoalSet += HandleScoreGoalSet;
         GameEvents.OnRoundStarted += HandleRoundStarted;
         GameEvents.OnScoringCompleted += HandleScoringCompleted;
         GameEvents.OnRoundCompleted += HandleRoundCompleted;
     }
 
-    private void OnDisable()
+    public override void OnDeactivated()
     {
         GameEvents.OnScoreGoalSet -= HandleScoreGoalSet;
         GameEvents.OnRoundStarted -= HandleRoundStarted;
@@ -74,7 +76,7 @@ public class EconomyOfScaleModifier : BaseModifier
 
     public override int ModifyScore(ScoreModifierContext context)
     {
-        // This modifier does not alter score; money is awarded via events
+        // Score is not altered; money is awarded via round-completed event
         return context.CurrentScore;
     }
 }

@@ -7,7 +7,8 @@ using System;
 /// Half the time you roll a 1, half the time you roll very high.
 /// Synergizes with Snake Eyes Gambit (more 1s = more multiplier).
 /// </summary>
-public class PolarizeEnhancement : BaseEnhancement
+[CreateAssetMenu(fileName = "ENH_Polarize", menuName = "Dice Game/Enhancements/Polarize")]
+public class PolarizeEnhancement : EnhancementData
 {
     [Header("Polarize Settings")]
     [SerializeField]
@@ -18,12 +19,9 @@ public class PolarizeEnhancement : BaseEnhancement
     [Tooltip("Bonus added to the highest faces")]
     private int _highFaceBonus = 2;
 
-    private void Reset()
-    {
-        _name = "Polarize";
-        _description = "Set the 3 lowest faces to 1 and add +2 to the 3 highest faces. High risk, high reward.";
-        _maxDiceCount = 1;
-    }
+    public override string Name => "Polarize";
+    protected override string DefaultDescription => $"Set the 3 lowest faces to {_lowFaceValue} and add +{_highFaceBonus} to the 3 highest faces. High risk, high reward.";
+    public override int MaxDiceCount => 1;
 
     public override int[] ApplyToDie(int[] currentValues)
     {
@@ -31,26 +29,12 @@ public class PolarizeEnhancement : BaseEnhancement
 
         int[] modifiedValues = (int[])currentValues.Clone();
 
-        // Sort to identify lowest/highest, but track original indices
-        int[] indices = new int[modifiedValues.Length];
-        for (int i = 0; i < indices.Length; i++)
-            indices[i] = i;
-
-        // Sort indices by their corresponding values
-        Array.Sort((int[])modifiedValues.Clone(), indices);
-
-        // Bottom half → set to low value, Top half → add bonus
-        int midpoint = modifiedValues.Length / 2;
-
-        // Sort a copy to determine which indices are low vs high
-        int[] sorted = (int[])modifiedValues.Clone();
-        Array.Sort(sorted);
-
-        // Build index-to-rank mapping
         int[] sortedIndices = new int[modifiedValues.Length];
         for (int i = 0; i < sortedIndices.Length; i++)
             sortedIndices[i] = i;
         Array.Sort((int[])modifiedValues.Clone(), sortedIndices);
+
+        int midpoint = modifiedValues.Length / 2;
 
         for (int rank = 0; rank < sortedIndices.Length; rank++)
         {
@@ -65,7 +49,7 @@ public class PolarizeEnhancement : BaseEnhancement
             }
         }
 
-        Debug.Log($"[{_name}] Polarized die: bottom {midpoint} faces -> {_lowFaceValue}, top {modifiedValues.Length - midpoint} faces -> +{_highFaceBonus}.");
+        Debug.Log($"[Polarize] Polarized die: bottom {midpoint} faces -> {_lowFaceValue}, top {modifiedValues.Length - midpoint} faces -> +{_highFaceBonus}.");
         return modifiedValues;
     }
 }

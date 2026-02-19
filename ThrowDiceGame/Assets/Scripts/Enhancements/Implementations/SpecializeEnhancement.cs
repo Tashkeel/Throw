@@ -6,14 +6,12 @@ using System.Linq;
 /// "Specialize" - higher ceiling, lower floor. More risk, more reward.
 /// Pairs well with BoostLowest (fix the 0) or High Roller Tax (massive high face).
 /// </summary>
-public class SpecializeEnhancement : BaseEnhancement
+[CreateAssetMenu(fileName = "ENH_Specialize", menuName = "Dice Game/Enhancements/Specialize")]
+public class SpecializeEnhancement : EnhancementData
 {
-    private void Reset()
-    {
-        _name = "Specialize";
-        _description = "Double the highest face value, but set the lowest face to 0.";
-        _maxDiceCount = 1;
-    }
+    public override string Name => "Specialize";
+    protected override string DefaultDescription => "Double the highest face value, but set the lowest face to 0.";
+    public override int MaxDiceCount => 1;
 
     public override int[] ApplyToDie(int[] currentValues)
     {
@@ -24,9 +22,7 @@ public class SpecializeEnhancement : BaseEnhancement
         int maxValue = modifiedValues.Max();
         int minValue = modifiedValues.Min();
 
-        // Double the first occurrence of the highest face
         bool doubledMax = false;
-        // Zero the first occurrence of the lowest face
         bool zeroedMin = false;
 
         for (int i = 0; i < modifiedValues.Length; i++)
@@ -43,7 +39,7 @@ public class SpecializeEnhancement : BaseEnhancement
             }
         }
 
-        Debug.Log($"[{_name}] Doubled highest ({maxValue} -> {maxValue * 2}), zeroed lowest ({minValue} -> 0).");
+        Debug.Log($"[Specialize] Doubled highest ({maxValue} -> {maxValue * 2}), zeroed lowest ({minValue} -> 0).");
         return modifiedValues;
     }
 }

@@ -5,7 +5,8 @@ using UnityEngine;
 /// "High Roller Tax" - all-or-nothing scoring on each die.
 /// Forces full commitment to upgrading dice or face harsh penalties.
 /// </summary>
-public class HighRollerTaxModifier : BaseModifier
+[CreateAssetMenu(fileName = "MOD_HighRollerTax", menuName = "Dice Game/Modifiers/High Roller Tax")]
+public class HighRollerTaxModifier : ModifierData
 {
     [Header("High Roller Tax Settings")]
     [SerializeField]
@@ -20,12 +21,9 @@ public class HighRollerTaxModifier : BaseModifier
     [Tooltip("Multiplier for high-value dice")]
     private int _highMultiplier = 2;
 
-    private void Reset()
-    {
-        _name = "High Roller Tax";
-        _description = "Dice showing 4+ score double, but dice showing 1-2 score 0.";
-        _timing = ScoreModifierTiming.PerDie;
-    }
+    public override string Name => "High Roller Tax";
+    protected override string DefaultDescription => $"Dice showing {_highThreshold}+ score x{_highMultiplier}, but dice showing 1-{_lowThreshold} score 0.";
+    public override ScoreModifierTiming Timing => ScoreModifierTiming.PerDie;
 
     public override int ModifyScore(ScoreModifierContext context)
     {

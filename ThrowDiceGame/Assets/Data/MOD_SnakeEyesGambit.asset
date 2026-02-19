@@ -9,9 +9,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8b823c7a7741a5640b49a175843f9990, type: 3}
+  m_Script: {fileID: 11500000, guid: c197eb6fc2ca6a246811f8e593e7ada4, type: 3}
   m_Name: MOD_SnakeEyesGambit
-  m_EditorClassIdentifier: Assembly-CSharp::ModifierData
-  _modifierPrefab: {fileID: -2815495454639711680, guid: 0c8d07051c114d849a84873a6d2b0990, type: 3}
+  m_EditorClassIdentifier: Assembly-CSharp::SnakeEyesGambitModifier
   _icon: {fileID: 0}
-  _cost: 25
+  _cost: 50
+  _rarity: 0
+  _multiplierPerOne: 1.5

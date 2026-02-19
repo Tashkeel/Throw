@@ -5,20 +5,17 @@ using UnityEngine;
 /// "Flatten" - eliminates variance for perfectly consistent rolls.
 /// Loses high faces but removes low ones. Great for predictable scoring.
 /// </summary>
-public class FlattenEnhancement : BaseEnhancement
+[CreateAssetMenu(fileName = "ENH_Flatten", menuName = "Dice Game/Enhancements/Flatten")]
+public class FlattenEnhancement : EnhancementData
 {
-    private void Reset()
-    {
-        _name = "Flatten";
-        _description = "Set all faces to the average value (rounded up). Consistent rolls, no surprises.";
-        _maxDiceCount = 1;
-    }
+    public override string Name => "Flatten";
+    protected override string DefaultDescription => "Set all faces to the average value (rounded up). Consistent rolls, no surprises.";
+    public override int MaxDiceCount => 1;
 
     public override int[] ApplyToDie(int[] currentValues)
     {
         if (currentValues == null || currentValues.Length == 0) return currentValues;
 
-        // Calculate average (rounded up)
         float sum = 0;
         foreach (int value in currentValues)
         {
@@ -32,7 +29,7 @@ public class FlattenEnhancement : BaseEnhancement
             modifiedValues[i] = average;
         }
 
-        Debug.Log($"[{_name}] Flattened all faces to {average} (from avg {sum / currentValues.Length:F1}).");
+        Debug.Log($"[Flatten] Flattened all faces to {average} (from avg {sum / currentValues.Length:F1}).");
         return modifiedValues;
     }
 }

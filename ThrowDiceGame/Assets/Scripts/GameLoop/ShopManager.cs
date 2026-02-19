@@ -194,7 +194,6 @@ public class ShopManager : MonoBehaviour
 
         if (!_modifierManager.AddModifier(modifier))
         {
-            // Refund if adding failed
             _currencyManager.AddMoney(modifier.Cost);
             return false;
         }
@@ -207,7 +206,7 @@ public class ShopManager : MonoBehaviour
     /// <summary>
     /// Sells an active modifier, removing it and refunding half its cost.
     /// </summary>
-    public bool SellModifier(IScoreModifier modifier)
+    public bool SellModifier(ModifierData modifier)
     {
         if (modifier == null || _currencyManager == null || _modifierManager == null)
             return false;
@@ -238,7 +237,6 @@ public class ShopManager : MonoBehaviour
         if (enhancement == null || selectedDice == null || _currencyManager == null)
             return false;
 
-        // Validate dice count
         if (selectedDice.Count != enhancement.RequiredDiceCount)
         {
             Debug.Log($"Enhancement '{enhancement.DisplayName}' requires {enhancement.RequiredDiceCount} dice, but {selectedDice.Count} selected.");
@@ -254,30 +252,22 @@ public class ShopManager : MonoBehaviour
         if (!_currencyManager.SpendMoney(enhancement.Cost))
             return false;
 
-        // Create enhancement instance
-        var enhancementInstance = enhancement.CreateEnhancementInstance(transform);
-        if (enhancementInstance == null)
-        {
-            _currencyManager.AddMoney(enhancement.Cost);
-            return false;
-        }
-
         // Let the enhancement analyze all selected dice before applying
         var allFaceValues = new List<int[]>();
         foreach (var diceData in selectedDice)
         {
             allFaceValues.Add(diceData._inventoryDie.GetFaceValues());
         }
-        enhancementInstance.PreProcess(allFaceValues);
+        enhancement.PreProcess(allFaceValues);
 
         // Apply enhancement to each selected die
         foreach (var diceData in selectedDice)
         {
-            diceData._inventoryDie.UpgradeDie(enhancementInstance);
+            diceData._inventoryDie.UpgradeDie(enhancement);
         }
 
         // If the enhancement creates duplicate dice, clone each selected die into inventory
-        if (enhancementInstance.CreatesDuplicateDie && _inventory != null)
+        if (enhancement.CreatesDuplicateDie && _inventory != null)
         {
             foreach (var diceData in selectedDice)
             {
@@ -285,12 +275,6 @@ public class ShopManager : MonoBehaviour
                 var clone = new InventoryDie(original.GetFaceValues(), original._dieType, original.GetFaceTypes());
                 _inventory.AddDice(clone);
             }
-        }
-
-        // Cleanup the enhancement instance
-        if (enhancementInstance is MonoBehaviour mb)
-        {
-            Destroy(mb.gameObject);
         }
 
         Debug.Log($"Applied enhancement '{enhancement.DisplayName}' to {selectedDice.Count} dice.");

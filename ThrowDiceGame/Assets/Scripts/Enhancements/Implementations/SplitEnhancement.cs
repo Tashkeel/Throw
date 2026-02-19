@@ -5,14 +5,12 @@ using UnityEngine;
 /// "Split" - trade raw value for more dice in hand.
 /// More dice means more combo potential (pairs, matching) but weaker individual rolls.
 /// </summary>
-public class SplitEnhancement : BaseEnhancement
+[CreateAssetMenu(fileName = "ENH_Split", menuName = "Dice Game/Enhancements/Split")]
+public class SplitEnhancement : EnhancementData
 {
-    private void Reset()
-    {
-        _name = "Split";
-        _description = "Halve all face values (rounded up) and create a copy. Two weaker dice instead of one strong one.";
-        _maxDiceCount = 1;
-    }
+    public override string Name => "Split";
+    protected override string DefaultDescription => "Halve all face values (rounded up) and create a copy. Two weaker dice instead of one strong one.";
+    public override int MaxDiceCount => 1;
 
     /// <summary>
     /// Signals ShopManager to clone the die after applying.
@@ -29,7 +27,7 @@ public class SplitEnhancement : BaseEnhancement
             modifiedValues[i] = Mathf.CeilToInt(currentValues[i] / 2f);
         }
 
-        Debug.Log($"[{_name}] Split die: halved all face values. A duplicate will be added to inventory.");
+        Debug.Log($"[Split] Split die: halved all face values. A duplicate will be added to inventory.");
         return modifiedValues;
     }
 }

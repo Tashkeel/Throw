@@ -19,9 +19,8 @@ public class ModifierDisplayItem : MonoBehaviour, IPointerEnterHandler, IPointer
     private TextMeshProUGUI _sellButtonText;
     private GameObject _sellButtonObj;
 
-    private IScoreModifier _modifier;
-    private ModifierData _data;
-    private Action<IScoreModifier> _onSellClicked;
+    private ModifierData _modifier;
+    private Action<ModifierData> _onSellClicked;
     private bool _isInShop;
 
     private static readonly Color NormalColor = new Color(0.2f, 0.2f, 0.25f, 0.9f);
@@ -31,10 +30,9 @@ public class ModifierDisplayItem : MonoBehaviour, IPointerEnterHandler, IPointer
     /// <summary>
     /// Builds the card UI hierarchy programmatically and initializes with modifier data.
     /// </summary>
-    public void Initialize(IScoreModifier modifier, ModifierData data, Action<IScoreModifier> onSellClicked)
+    public void Initialize(ModifierData modifier, Action<ModifierData> onSellClicked)
     {
         _modifier = modifier;
-        _data = data;
         _onSellClicked = onSellClicked;
 
         BuildUI();
@@ -52,7 +50,6 @@ public class ModifierDisplayItem : MonoBehaviour, IPointerEnterHandler, IPointer
 
     private void BuildUI()
     {
-        // Root setup
         var rootRect = GetComponent<RectTransform>();
         if (rootRect == null) rootRect = gameObject.AddComponent<RectTransform>();
 
@@ -161,9 +158,9 @@ public class ModifierDisplayItem : MonoBehaviour, IPointerEnterHandler, IPointer
         _descriptionText.text = _modifier.Description;
         _timingText.text = _modifier.Timing == ScoreModifierTiming.PerDie ? "Per Die" : "After Throw";
 
-        if (_data != null && _data.Icon != null)
+        if (_modifier.Icon != null)
         {
-            _iconImage.sprite = _data.Icon;
+            _iconImage.sprite = _modifier.Icon;
             _iconImage.color = Color.white;
         }
         else
@@ -180,9 +177,9 @@ public class ModifierDisplayItem : MonoBehaviour, IPointerEnterHandler, IPointer
 
         _sellButtonObj.SetActive(_isInShop);
 
-        if (_isInShop && _data != null)
+        if (_isInShop && _modifier != null)
         {
-            int sellPrice = _data.Cost / 2;
+            int sellPrice = _modifier.Cost / 2;
             _sellButtonText.text = sellPrice > 0 ? $"Sell ${sellPrice}" : "Sell";
         }
     }

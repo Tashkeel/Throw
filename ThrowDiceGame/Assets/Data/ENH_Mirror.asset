@@ -9,9 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9bc0a92ef2441424ba40dfb6b5597218, type: 3}
+  m_Script: {fileID: 11500000, guid: 860bc4f45b3835e47a2ec04caf5503ac, type: 3}
   m_Name: ENH_Mirror
-  m_EditorClassIdentifier: Assembly-CSharp::EnhancementData
-  _enhancementPrefab: {fileID: -4430193462591832135, guid: 1af485fe7472ce848a1d9d054e845e12, type: 3}
+  m_EditorClassIdentifier: Assembly-CSharp::MirrorEnhancement
   _icon: {fileID: 0}
-  _cost: 45
+  _cost: 30
+  _rarity: 0

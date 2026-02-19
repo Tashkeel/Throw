@@ -2,10 +2,11 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Sample modifier that gives bonus points for matching dice.
+/// Modifier that gives bonus points for matching dice.
 /// "Pair Master" - rewards rolling pairs, triples, etc.
 /// </summary>
-public class MatchingBonusModifier : BaseModifier
+[CreateAssetMenu(fileName = "MOD_PairMaster", menuName = "Dice Game/Modifiers/Pair Master")]
+public class MatchingBonusModifier : ModifierData
 {
     [Header("Matching Bonus Settings")]
     [SerializeField]
@@ -20,19 +21,15 @@ public class MatchingBonusModifier : BaseModifier
     [Tooltip("Bonus for 4+ matching dice")]
     private int _quadBonus = 25;
 
-    private void Reset()
-    {
-        _name = "Pair Master";
-        _description = "Bonus points for matching dice: +3 per pair, +10 per triple, +25 for 4+.";
-        _timing = ScoreModifierTiming.AfterThrow;
-    }
+    public override string Name => "Pair Master";
+    protected override string DefaultDescription => $"Bonus for matching dice: +{_pairBonus} pair, +{_tripleBonus} triple, +{_quadBonus} for 4+.";
+    public override ScoreModifierTiming Timing => ScoreModifierTiming.AfterThrow;
 
     public override int ModifyScore(ScoreModifierContext context)
     {
         if (context.AllDieValues == null || context.AllDieValues.Length < 2)
             return context.CurrentScore;
 
-        // Count occurrences of each value
         var valueCounts = new Dictionary<int, int>();
         foreach (int value in context.AllDieValues)
         {
@@ -42,7 +39,6 @@ public class MatchingBonusModifier : BaseModifier
                 valueCounts[value] = 1;
         }
 
-        // Calculate bonus based on matches
         int totalBonus = 0;
         foreach (var kvp in valueCounts)
         {
@@ -65,9 +61,7 @@ public class MatchingBonusModifier : BaseModifier
         }
 
         if (totalBonus > 0)
-        {
             Debug.Log($"[Pair Master] Total matching bonus: +{totalBonus}");
-        }
 
         return context.CurrentScore + totalBonus;
     }
