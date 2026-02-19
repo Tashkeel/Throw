@@ -167,6 +167,7 @@ public class DicePreviewRenderer : MonoBehaviour
         if (currentDie != null && inventoryDie != null)
         {
             currentDie.SetAllSideValues(inventoryDie.GetFaceValues());
+            currentDie.SetAllSideTypes(inventoryDie.GetFaceTypes());
         }
 
         // Create and return the preview instance wrapper

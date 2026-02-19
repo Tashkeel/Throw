@@ -57,6 +57,9 @@ public class GameplayDie : MonoBehaviour
     [Tooltip("How often to check rest state when monitoring (seconds)")]
     private float _restCheckInterval = 0.1f;
 
+    private static readonly Color ScoreTextColor = new Color(0.2f, 0.6f, 1f);
+    private static readonly Color MoneyTextColor = new Color(1f, 0.84f, 0f);
+
     private Rigidbody _rigidbody;
     private bool _isMonitoringRest;
     private bool _hasReportedRest;
@@ -206,9 +209,10 @@ public class GameplayDie : MonoBehaviour
     {
         if (side?.textDisplay != null)
         {
-            side.textDisplay.text = side.sideType == DieSideType.Money
-                ? $"${side.value}"
-                : side.value.ToString();
+            side.textDisplay.text = side.value.ToString();
+            side.textDisplay.color = side.sideType == DieSideType.Money
+                ? MoneyTextColor
+                : ScoreTextColor;
         }
     }
 

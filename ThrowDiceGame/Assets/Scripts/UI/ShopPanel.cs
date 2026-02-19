@@ -103,11 +103,9 @@ public class ShopPanel : UIPanel
         if (_shopManager != null)
         {
             _shopManager.OnPurchaseMade += OnPurchaseMade;
-            if (_shopManager.CurrencyManager != null)
-            {
-                _shopManager.CurrencyManager.OnMoneyChanged += UpdateMoneyDisplay;
-            }
         }
+
+        GameEvents.OnMoneyChanged += UpdateMoneyDisplay;
     }
 
     protected override void OnShow()
@@ -678,13 +676,11 @@ public class ShopPanel : UIPanel
             _cancelSelectionButton.onClick.RemoveListener(OnCancelSelectionClicked);
         }
 
+        GameEvents.OnMoneyChanged -= UpdateMoneyDisplay;
+
         if (_shopManager != null)
         {
             _shopManager.OnPurchaseMade -= OnPurchaseMade;
-            if (_shopManager.CurrencyManager != null)
-            {
-                _shopManager.CurrencyManager.OnMoneyChanged -= UpdateMoneyDisplay;
-            }
         }
     }
 }

@@ -3,33 +3,26 @@ using UnityEngine;
 /// <summary>
 /// ScriptableObject that defines a purchasable enhancement for the shop.
 /// Enhancements permanently modify selected dice for the rest of the game.
+/// Name and description are pulled from the assigned prefab.
 /// </summary>
 [CreateAssetMenu(fileName = "NewEnhancement", menuName = "Dice Game/Enhancement")]
 public class EnhancementData : ScriptableObject
 {
-    [Header("Identity")]
-    [SerializeField]
-    private string _displayName = "New Enhancement";
-
-    [SerializeField]
-    [TextArea(2, 4)]
-    private string _description = "Description of what this enhancement does.";
-
-    [SerializeField]
-    private Sprite _icon;
-
-    [Header("Shop")]
-    [SerializeField]
-    [Tooltip("Cost to purchase this enhancement")]
-    private int _cost = 30;
-
     [Header("Enhancement Implementation")]
     [SerializeField]
     [Tooltip("The enhancement component prefab that implements IEnhancement")]
     private BaseEnhancement _enhancementPrefab;
 
-    public string DisplayName => _displayName;
-    public string Description => _description;
+    [Header("Shop")]
+    [SerializeField]
+    private Sprite _icon;
+
+    [SerializeField]
+    [Tooltip("Cost to purchase this enhancement")]
+    private int _cost = 30;
+
+    public string DisplayName => _enhancementPrefab != null ? _enhancementPrefab.Name : "No Prefab";
+    public string Description => _enhancementPrefab != null ? _enhancementPrefab.Description : "";
     public Sprite Icon => _icon;
     public int Cost => _cost;
     public BaseEnhancement EnhancementPrefab => _enhancementPrefab;
@@ -46,12 +39,12 @@ public class EnhancementData : ScriptableObject
     {
         if (_enhancementPrefab == null)
         {
-            Debug.LogError($"EnhancementData '{_displayName}' has no enhancement prefab assigned!");
+            Debug.LogError($"EnhancementData '{name}' has no enhancement prefab assigned!");
             return null;
         }
 
         var instance = Instantiate(_enhancementPrefab, parent);
-        instance.name = _displayName;
+        instance.name = DisplayName;
         return instance;
     }
 }

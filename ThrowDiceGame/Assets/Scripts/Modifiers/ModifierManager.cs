@@ -10,7 +10,7 @@ public class ModifierManager : MonoBehaviour
 {
     [SerializeField]
     [Tooltip("Maximum number of modifiers that can be equipped at once")]
-    private int _maxModifiers = 3;
+    private int _maxModifiers = 4;
 
     private List<IScoreModifier> _activeModifiers = new List<IScoreModifier>();
     private Dictionary<IScoreModifier, ModifierData> _modifierDataMap = new Dictionary<IScoreModifier, ModifierData>();
@@ -20,6 +20,12 @@ public class ModifierManager : MonoBehaviour
     /// Singleton instance for easy access.
     /// </summary>
     public static ModifierManager Instance { get; private set; }
+
+    /// <summary>
+    /// Reference to the currency manager, set by GameManager.
+    /// Allows modifiers to award money (e.g., Economy of Scale).
+    /// </summary>
+    public CurrencyManager CurrencyManager { get; set; }
 
     /// <summary>
     /// Read-only list of active modifiers.

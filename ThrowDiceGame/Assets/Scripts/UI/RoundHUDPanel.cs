@@ -14,6 +14,7 @@ public class RoundHUDPanel : UIPanel
     [SerializeField] private TextMeshProUGUI _throwsText;
     [SerializeField] private TextMeshProUGUI _inventoryText;
     [SerializeField] private TextMeshProUGUI _modifiersText;
+    [SerializeField] private TextMeshProUGUI _moneyText;
 
     [Header("Score Animation")]
     [SerializeField]
@@ -38,6 +39,12 @@ public class RoundHUDPanel : UIPanel
     private RectTransform _scoreRect;
     private float _scoreBumpT;
 
+    private int _targetMoney;
+    private float _displayedMoney;
+    private bool _animatingMoney;
+    private RectTransform _moneyRect;
+    private float _moneyBumpT;
+
     public void Initialize(GameManager gameManager, RoundManager roundManager)
     {
         _gameManager = gameManager;
@@ -47,12 +54,14 @@ public class RoundHUDPanel : UIPanel
     private void OnEnable()
     {
         GameEvents.OnScoreChanged += HandleScoreChanged;
+        GameEvents.OnMoneyChanged += HandleMoneyChanged;
         GameEvents.OnModifiersChanged += UpdateModifierCount;
     }
 
     private void OnDisable()
     {
         GameEvents.OnScoreChanged -= HandleScoreChanged;
+        GameEvents.OnMoneyChanged -= HandleMoneyChanged;
         GameEvents.OnModifiersChanged -= UpdateModifierCount;
     }
 
@@ -60,6 +69,8 @@ public class RoundHUDPanel : UIPanel
     {
         UpdateScoreAnimation();
         UpdateScoreBump();
+        UpdateMoneyAnimation();
+        UpdateMoneyBump();
     }
 
     private void UpdateScoreAnimation()
@@ -124,6 +135,15 @@ public class RoundHUDPanel : UIPanel
             _inventoryText.text = $"{_gameManager.Inventory.TotalDiceCount}";
         }
 
+        if (_moneyText != null && _gameManager.CurrencyManager != null)
+        {
+            int currentMoney = _gameManager.CurrencyManager.CurrentMoney;
+            _displayedMoney = currentMoney;
+            _targetMoney = currentMoney;
+            _animatingMoney = false;
+            _moneyText.text = $"${currentMoney}";
+        }
+
         UpdateModifierCount();
     }
 
@@ -145,5 +165,39 @@ public class RoundHUDPanel : UIPanel
             _scoreRect = _scoreText.rectTransform;
 
         _scoreBumpT = 1f;
+    }
+
+    private void HandleMoneyChanged(int newMoney)
+    {
+        _targetMoney = newMoney;
+        _animatingMoney = true;
+
+        if (_moneyRect == null && _moneyText != null)
+            _moneyRect = _moneyText.rectTransform;
+
+        _moneyBumpT = 1f;
+    }
+
+    private void UpdateMoneyAnimation()
+    {
+        if (!_animatingMoney || _moneyText == null) return;
+
+        _displayedMoney = Mathf.MoveTowards(_displayedMoney, _targetMoney,
+            _scoreAnimationSpeed * Time.deltaTime * Mathf.Max(1f, Mathf.Abs(_targetMoney - _displayedMoney)));
+
+        int shown = Mathf.RoundToInt(_displayedMoney);
+        _moneyText.text = $"${shown}";
+
+        if (shown == _targetMoney)
+            _animatingMoney = false;
+    }
+
+    private void UpdateMoneyBump()
+    {
+        if (_moneyRect == null || _moneyBumpT <= 0f) return;
+
+        _moneyBumpT = Mathf.MoveTowards(_moneyBumpT, 0f, _scoreBumpDecaySpeed * Time.deltaTime);
+        float scale = 1f + (_scoreBumpScale - 1f) * _moneyBumpT * _moneyBumpT;
+        _moneyRect.localScale = Vector3.one * scale;
     }
 }

@@ -262,11 +262,29 @@ public class ShopManager : MonoBehaviour
             return false;
         }
 
+        // Let the enhancement analyze all selected dice before applying
+        var allFaceValues = new List<int[]>();
+        foreach (var diceData in selectedDice)
+        {
+            allFaceValues.Add(diceData._inventoryDie.GetFaceValues());
+        }
+        enhancementInstance.PreProcess(allFaceValues);
+
         // Apply enhancement to each selected die
         foreach (var diceData in selectedDice)
         {
             diceData._inventoryDie.UpgradeDie(enhancementInstance);
+        }
 
+        // If the enhancement creates duplicate dice, clone each selected die into inventory
+        if (enhancementInstance.CreatesDuplicateDie && _inventory != null)
+        {
+            foreach (var diceData in selectedDice)
+            {
+                var original = diceData._inventoryDie;
+                var clone = new InventoryDie(original.GetFaceValues(), original._dieType, original.GetFaceTypes());
+                _inventory.AddDice(clone);
+            }
         }
 
         // Cleanup the enhancement instance

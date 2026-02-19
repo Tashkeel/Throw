@@ -73,9 +73,14 @@ Assets/
 │   │   ├── ModifierData.cs        # ScriptableObject for shop
 │   │   ├── ModifierManager.cs     # Active modifier management
 │   │   └── Implementations/
-│   │       ├── DoubleOnesModifier.cs   # Doubles 1s
-│   │       ├── FlatBonusModifier.cs    # +5 per throw
-│   │       └── MatchingBonusModifier.cs # Bonus for pairs/triples
+│   │       ├── DoubleOnesModifier.cs       # Doubles 1s
+│   │       ├── FlatBonusModifier.cs        # +5 per throw
+│   │       ├── MatchingBonusModifier.cs    # Bonus for pairs/triples
+│   │       ├── SnakeEyesGambitModifier.cs  # 1.5x per die showing 1
+│   │       ├── AscendingOrderModifier.cs   # +50% if all unique
+│   │       ├── MomentumModifier.cs         # +20% per consecutive throw
+│   │       ├── HighRollerTaxModifier.cs    # Double 4+, zero 1-2
+│   │       └── EconomyOfScaleModifier.cs   # Surplus score → money
 │   ├── Enhancements/      # Dice enhancement system
 │   │   ├── IEnhancement.cs        # Enhancement interface
 │   │   ├── BaseEnhancement.cs     # MonoBehaviour base class
@@ -83,7 +88,12 @@ Assets/
 │   │   └── Implementations/
 │   │       ├── AddValueEnhancement.cs      # +1 to all faces
 │   │       ├── BoostLowestEnhancement.cs   # Raise minimum face
-│   │       └── SynergyEnhancement.cs       # Boost 2 dice together
+│   │       ├── SynergyEnhancement.cs       # Boost 2 dice together
+│   │       ├── FlattenEnhancement.cs       # All faces → average
+│   │       ├── SpecializeEnhancement.cs    # Double max, zero min
+│   │       ├── SplitEnhancement.cs         # Halve values + duplicate
+│   │       ├── PolarizeEnhancement.cs      # Bottom→1, top→+2
+│   │       └── MirrorEnhancement.cs        # Clone stronger die
 │   └── UI/                # User interface
 │       ├── UIManager.cs           # Panel show/hide controller
 │       ├── UIPanel.cs             # Base panel class
@@ -768,6 +778,11 @@ Persistent UI panel showing currently equipped modifiers.
 | Lucky Ones | PerDie | Doubles dice showing 1 | $50 |
 | Steady Hand | AfterThrow | +5 to every throw | $50 |
 | Pair Master | AfterThrow | +3/pair, +10/triple, +25/quad+ | $50 |
+| Snake Eyes Gambit | AfterThrow | Each die showing 1 multiplies throw score by 1.5x | $75 |
+| Ascending Order | AfterThrow | +50% bonus if all dice show different values | $60 |
+| Momentum | AfterThrow | Each throw scores +20% more (1st: +0%, 2nd: +20%, 3rd: +40%) | $55 |
+| High Roller Tax | PerDie | Dice 4+ score double, dice 1-2 score 0 | $65 |
+| Economy of Scale | AfterThrow | Earn $2 per point scored above the round goal | $80 |
 
 **Enhancements (permanent dice upgrades):**
 
@@ -776,6 +791,11 @@ Persistent UI panel showing currently equipped modifiers.
 | Power Up | 1 | +1 to all faces | $30 |
 | Lucky Break | 1 | Raise lowest face to 3 | $30 |
 | Synergy | 2 | +2 to all faces of both dice | $30 |
+| Flatten | 1 | Set all faces to average value (rounded up) | $25 |
+| Specialize | 1 | Double highest face, set lowest face to 0 | $35 |
+| Split | 1 | Halve all face values (ceil) and create a duplicate die | $40 |
+| Polarize | 1 | Bottom 3 faces become 1, top 3 faces get +2 | $30 |
+| Mirror | 2 | Both dice become copies of whichever has higher total | $45 |
 
 ### Scene Setup for Shop
 

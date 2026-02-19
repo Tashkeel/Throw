@@ -4,39 +4,37 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Panel that displays currently active modifiers.
-/// Visible during both rounds and in the shop.
-/// Shows sell buttons during shop phase.
+/// Panel that displays equipped modifier slots.
+/// Shows filled cards for active modifiers and empty placeholders for vacant slots.
+/// Sell buttons appear during the shop phase.
 /// </summary>
 public class ActiveModifiersPanel : MonoBehaviour
 {
     [Header("UI Elements")]
     [SerializeField] private Transform _modifierContainer;
-    [SerializeField] private GameObject _modifierItemPrefab;
-    [SerializeField] private TextMeshProUGUI _noModifiersText;
-
-    [Header("Settings")]
-    [SerializeField] private bool _showDescriptions = true;
+    [SerializeField] private TextMeshProUGUI _titleText;
 
     [Header("References")]
     [SerializeField] private ShopManager _shopManager;
 
-    private List<GameObject> _modifierItems = new List<GameObject>();
-    private List<Button> _sellButtons = new List<Button>();
-    private bool _sellEnabled;
+    private List<GameObject> _slotObjects = new List<GameObject>();
+
+    private static readonly Color EmptySlotColor = new Color(0.15f, 0.15f, 0.18f, 0.5f);
+    private static readonly Color EmptySlotBorderColor = new Color(0.4f, 0.4f, 0.45f, 0.4f);
 
     private void Start()
     {
-        // Subscribe to modifier changes
+        EnsureContainer();
+
         if (ModifierManager.Instance != null)
         {
             ModifierManager.Instance.OnModifiersChanged += RefreshDisplay;
-            RefreshDisplay();
         }
 
-        // Subscribe to shop events for sell button visibility
-        GameEvents.OnShopEntered += OnShopEntered;
-        GameEvents.OnShopExited += OnShopExited;
+        GameEvents.OnShopEntered += OnShopEvent;
+        GameEvents.OnShopExited += OnShopEvent;
+
+        RefreshDisplay();
     }
 
     private void OnDestroy()
@@ -46,127 +44,155 @@ public class ActiveModifiersPanel : MonoBehaviour
             ModifierManager.Instance.OnModifiersChanged -= RefreshDisplay;
         }
 
-        GameEvents.OnShopEntered -= OnShopEntered;
-        GameEvents.OnShopExited -= OnShopExited;
+        GameEvents.OnShopEntered -= OnShopEvent;
+        GameEvents.OnShopExited -= OnShopEvent;
     }
 
-    private void OnShopEntered()
+    private void OnShopEvent()
     {
-        _sellEnabled = true;
         RefreshDisplay();
     }
 
-    private void OnShopExited()
+    private void EnsureContainer()
     {
-        _sellEnabled = false;
-        RefreshDisplay();
+        if (_modifierContainer != null) return;
+
+        // Build container programmatically if not assigned
+        var containerObj = new GameObject("ModifierContainer", typeof(RectTransform));
+        containerObj.transform.SetParent(transform, false);
+
+        var hlg = containerObj.AddComponent<HorizontalLayoutGroup>();
+        hlg.spacing = 8;
+        hlg.childAlignment = TextAnchor.MiddleLeft;
+        hlg.childControlWidth = false;
+        hlg.childControlHeight = true;
+        hlg.childForceExpandWidth = false;
+        hlg.childForceExpandHeight = false;
+
+        var containerRect = containerObj.GetComponent<RectTransform>();
+        containerRect.anchorMin = Vector2.zero;
+        containerRect.anchorMax = Vector2.one;
+        containerRect.offsetMin = Vector2.zero;
+        containerRect.offsetMax = Vector2.zero;
+
+        _modifierContainer = containerObj.transform;
     }
 
     /// <summary>
-    /// Refreshes the display of active modifiers.
+    /// Rebuilds all modifier slots from scratch.
     /// </summary>
     public void RefreshDisplay()
     {
-        // Clear existing items
-        foreach (var item in _modifierItems)
+        ClearSlots();
+
+        int maxSlots = 4;
+        IReadOnlyList<IScoreModifier> activeModifiers = null;
+
+        if (ModifierManager.Instance != null)
         {
-            if (item != null)
+            maxSlots = ModifierManager.Instance.MaxModifiers;
+            activeModifiers = ModifierManager.Instance.ActiveModifiers;
+        }
+
+        int filledCount = activeModifiers?.Count ?? 0;
+
+        // Update title
+        UpdateTitle(filledCount, maxSlots);
+
+        // Create filled slots
+        if (activeModifiers != null)
+        {
+            foreach (var modifier in activeModifiers)
             {
-                Destroy(item);
+                CreateFilledSlot(modifier);
             }
         }
-        _modifierItems.Clear();
-        _sellButtons.Clear();
 
-        if (ModifierManager.Instance == null)
+        // Create empty slots for remaining capacity
+        int emptyCount = maxSlots - filledCount;
+        for (int i = 0; i < emptyCount; i++)
         {
-            ShowNoModifiers(true);
-            return;
-        }
-
-        var activeModifiers = ModifierManager.Instance.ActiveModifiers;
-
-        if (activeModifiers.Count == 0)
-        {
-            ShowNoModifiers(true);
-            return;
-        }
-
-        ShowNoModifiers(false);
-
-        // Create display for each modifier
-        foreach (var modifier in activeModifiers)
-        {
-            CreateModifierItem(modifier);
+            CreateEmptySlot();
         }
     }
 
-    private void CreateModifierItem(IScoreModifier modifier)
+    private void UpdateTitle(int filled, int max)
+    {
+        if (_titleText == null)
+        {
+            // Create title if not assigned
+            var titleObj = new GameObject("Title", typeof(RectTransform));
+            titleObj.transform.SetParent(transform, false);
+            titleObj.transform.SetAsFirstSibling();
+            _titleText = titleObj.AddComponent<TextMeshProUGUI>();
+            _titleText.fontSize = 14;
+            _titleText.fontStyle = FontStyles.Bold;
+            _titleText.color = new Color(0.9f, 0.9f, 0.9f, 0.9f);
+            _titleText.alignment = TextAlignmentOptions.Left;
+            var titleLE = titleObj.AddComponent<LayoutElement>();
+            titleLE.preferredHeight = 20;
+        }
+
+        _titleText.text = $"Modifiers ({filled}/{max})";
+    }
+
+    private void CreateFilledSlot(IScoreModifier modifier)
     {
         if (_modifierContainer == null) return;
 
-        GameObject item;
+        var slotObj = new GameObject($"Slot_{modifier.Name}", typeof(RectTransform));
+        slotObj.transform.SetParent(_modifierContainer, false);
 
-        if (_modifierItemPrefab != null)
+        var displayItem = slotObj.AddComponent<ModifierDisplayItem>();
+
+        ModifierData data = null;
+        if (ModifierManager.Instance != null)
         {
-            item = Instantiate(_modifierItemPrefab, _modifierContainer);
-        }
-        else
-        {
-            // Create a simple text display if no prefab
-            item = new GameObject(modifier.Name);
-            item.transform.SetParent(_modifierContainer, false);
-
-            var text = item.AddComponent<TextMeshProUGUI>();
-            int sellPrice = ModifierManager.Instance.GetSellPrice(modifier);
-            string sellInfo = _sellEnabled && sellPrice > 0 ? $" <color=#FFCC00>(Sell: ${sellPrice})</color>" : "";
-            text.text = _showDescriptions
-                ? $"<b>{modifier.Name}</b>{sellInfo}\n<size=80%>{modifier.Description}</size>"
-                : $"{modifier.Name}{sellInfo}";
-            text.fontSize = 14;
-            text.alignment = TextAlignmentOptions.Left;
-
-            var layoutElement = item.AddComponent<LayoutElement>();
-            layoutElement.preferredHeight = _showDescriptions ? 50 : 25;
+            data = ModifierManager.Instance.GetModifierData(modifier);
         }
 
-        // Try to populate prefab components
-        var nameText = item.GetComponentInChildren<TextMeshProUGUI>();
-        if (nameText != null && _modifierItemPrefab != null)
-        {
-            int sellPrice = ModifierManager.Instance.GetSellPrice(modifier);
-            string sellInfo = _sellEnabled && sellPrice > 0 ? $" <color=#FFCC00>(Sell: ${sellPrice})</color>" : "";
-            nameText.text = _showDescriptions
-                ? $"<b>{modifier.Name}</b>{sellInfo}\n<size=80%>{modifier.Description}</size>"
-                : $"{modifier.Name}{sellInfo}";
-        }
+        displayItem.Initialize(modifier, data, OnSellClicked);
+        _slotObjects.Add(slotObj);
+    }
 
-        // Add sell button during shop phase
-        if (_sellEnabled)
-        {
-            int sellPrice = ModifierManager.Instance.GetSellPrice(modifier);
-            if (sellPrice > 0)
-            {
-                var sellButtonObj = new GameObject("SellButton");
-                sellButtonObj.transform.SetParent(item.transform, false);
+    private void CreateEmptySlot()
+    {
+        if (_modifierContainer == null) return;
 
-                var sellButton = sellButtonObj.AddComponent<Button>();
-                var buttonText = sellButtonObj.AddComponent<TextMeshProUGUI>();
-                buttonText.text = $"Sell (${sellPrice})";
-                buttonText.fontSize = 12;
-                buttonText.alignment = TextAlignmentOptions.Center;
+        var slotObj = new GameObject("EmptySlot", typeof(RectTransform));
+        slotObj.transform.SetParent(_modifierContainer, false);
 
-                var buttonLayout = sellButtonObj.AddComponent<LayoutElement>();
-                buttonLayout.preferredHeight = 25;
-                buttonLayout.preferredWidth = 80;
+        var bg = slotObj.AddComponent<Image>();
+        bg.color = EmptySlotColor;
 
-                IScoreModifier capturedModifier = modifier;
-                sellButton.onClick.AddListener(() => OnSellClicked(capturedModifier));
-                _sellButtons.Add(sellButton);
-            }
-        }
+        // Dashed border effect via outline
+        var outline = slotObj.AddComponent<Outline>();
+        outline.effectColor = EmptySlotBorderColor;
+        outline.effectDistance = new Vector2(1, 1);
 
-        _modifierItems.Add(item);
+        var le = slotObj.AddComponent<LayoutElement>();
+        le.preferredWidth = 160;
+        le.preferredHeight = 100;
+        le.flexibleWidth = 0;
+
+        // Placeholder text
+        var textObj = new GameObject("Placeholder", typeof(RectTransform));
+        textObj.transform.SetParent(slotObj.transform, false);
+
+        var text = textObj.AddComponent<TextMeshProUGUI>();
+        text.text = "Empty";
+        text.fontSize = 13;
+        text.fontStyle = FontStyles.Italic;
+        text.color = new Color(0.5f, 0.5f, 0.55f, 0.5f);
+        text.alignment = TextAlignmentOptions.Center;
+
+        var textRect = textObj.GetComponent<RectTransform>();
+        textRect.anchorMin = Vector2.zero;
+        textRect.anchorMax = Vector2.one;
+        textRect.offsetMin = Vector2.zero;
+        textRect.offsetMax = Vector2.zero;
+
+        _slotObjects.Add(slotObj);
     }
 
     private void OnSellClicked(IScoreModifier modifier)
@@ -174,15 +200,15 @@ public class ActiveModifiersPanel : MonoBehaviour
         if (_shopManager != null)
         {
             _shopManager.SellModifier(modifier);
-            // RefreshDisplay will be called via OnModifiersChanged
         }
     }
 
-    private void ShowNoModifiers(bool show)
+    private void ClearSlots()
     {
-        if (_noModifiersText != null)
+        foreach (var slot in _slotObjects)
         {
-            _noModifiersText.gameObject.SetActive(show);
+            if (slot != null) Destroy(slot);
         }
+        _slotObjects.Clear();
     }
 }

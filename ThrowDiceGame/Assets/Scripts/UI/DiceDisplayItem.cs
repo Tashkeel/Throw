@@ -35,6 +35,10 @@ public class DiceDisplayItem : MonoBehaviour, IPointerDownHandler, IPointerUpHan
     [SerializeField] private Color _faceHighlightColor = new Color(1f, 0.8f, 0.2f, 1f);
     [SerializeField] private Color _moneyFaceColor = new Color(1f, 0.84f, 0f, 1f);
 
+    [Header("Face Text Colors")]
+    [SerializeField] private Color _scoreTextColor = new Color(0.2f, 0.6f, 1f);
+    [SerializeField] private Color _moneyTextColor = new Color(1f, 0.84f, 0f);
+
     [Header("Colors")]
     [SerializeField] private Color _normalColor = Color.white;
     [SerializeField] private Color _selectedColor = new Color(1f, 0.8f, 0.8f);
@@ -162,20 +166,17 @@ public class DiceDisplayItem : MonoBehaviour, IPointerDownHandler, IPointerUpHan
 
             if (_faceValueTexts[displayPos] != null)
             {
-                _faceValueTexts[displayPos].text = isMoney
-                    ? $"${values[originalIndex]}"
-                    : values[originalIndex].ToString();
+                _faceValueTexts[displayPos].text = values[originalIndex].ToString();
+                _faceValueTexts[displayPos].color = isMoney ? _moneyTextColor : _scoreTextColor;
             }
         }
 
-        // Set backgrounds — money faces get gold color, score faces get normal
+        // Set all backgrounds to normal — highlighting is handled by UpdateFaceHighlight
         for (int displayPos = 0; displayPos < _faceValueBackgrounds.Length; displayPos++)
         {
             if (_faceValueBackgrounds[displayPos] != null)
             {
-                int originalIndex = displayPos < sortedIndices.Length ? sortedIndices[displayPos] : 0;
-                bool isMoney = types != null && originalIndex < types.Length && types[originalIndex] == DieSideType.Money;
-                _faceValueBackgrounds[displayPos].color = isMoney ? _moneyFaceColor : _faceNormalColor;
+                _faceValueBackgrounds[displayPos].color = _faceNormalColor;
             }
         }
     }
@@ -195,12 +196,12 @@ public class DiceDisplayItem : MonoBehaviour, IPointerDownHandler, IPointerUpHan
             {
                 if (i == highlightPosition)
                 {
-                    _faceValueBackgrounds[i].color = _faceHighlightColor;
+                    bool isMoney = _isMoneyDisplayPosition != null && i < _isMoneyDisplayPosition.Length && _isMoneyDisplayPosition[i];
+                    _faceValueBackgrounds[i].color = isMoney ? _moneyFaceColor : _faceHighlightColor;
                 }
                 else
                 {
-                    bool isMoney = _isMoneyDisplayPosition != null && i < _isMoneyDisplayPosition.Length && _isMoneyDisplayPosition[i];
-                    _faceValueBackgrounds[i].color = isMoney ? _moneyFaceColor : _faceNormalColor;
+                    _faceValueBackgrounds[i].color = _faceNormalColor;
                 }
             }
         }

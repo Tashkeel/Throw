@@ -20,6 +20,10 @@ public class GameManager : MonoBehaviour
     [Tooltip("Score goal increase per round")]
     private int _scoreIncreasePerRound = 10;
 
+    [SerializeField]
+    [Tooltip("Starting number of money dice (all faces earn money instead of score)")]
+    private int _startingMoneyDiceCount = 2;
+
     [Header("Currency")]
     [SerializeField]
     [Tooltip("Money earned per remaining die (hand + inventory) after a successful round")]
@@ -101,6 +105,12 @@ public class GameManager : MonoBehaviour
         // Create currency manager
         _currencyManager = new CurrencyManager(_moneyPerDieRemaining);
 
+        // Provide currency manager to modifier system
+        if (_modifierManager != null)
+        {
+            _modifierManager.CurrencyManager = _currencyManager;
+        }
+
         // Initialize managers
         if (_roundManager != null)
         {
@@ -130,6 +140,21 @@ public class GameManager : MonoBehaviour
             _defaultDiceData = DiceData.CreateDefaultDie();
         }
         _inventory.Initialize(DiceData.CreateDie(_defaultDiceData), _startingDiceCount);
+
+        // Add money dice (all faces earn money instead of score)
+        if (_startingMoneyDiceCount > 0 && _defaultDiceData != null)
+        {
+            var moneyFaceTypes = new DieSideType[] {
+                DieSideType.Money, DieSideType.Money, DieSideType.Money,
+                DieSideType.Money, DieSideType.Money, DieSideType.Money
+            };
+            var moneyDie = new InventoryDie(
+                DiceData.CreateDie(_defaultDiceData).GetFaceValues(),
+                _defaultDiceData,
+                moneyFaceTypes
+            );
+            _inventory.AddDice(moneyDie, _startingMoneyDiceCount);
+        }
 
         Debug.Log($"Starting with {_inventory.TotalDiceCount} dice");
 

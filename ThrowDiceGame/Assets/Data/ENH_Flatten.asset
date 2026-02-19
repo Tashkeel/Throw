@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9bc0a92ef2441424ba40dfb6b5597218, type: 3}
+  m_Name: ENH_Flatten
+  m_EditorClassIdentifier: Assembly-CSharp::EnhancementData
+  _enhancementPrefab: {fileID: -5870388582663639715, guid: d8679cc7d315f454fb9b3926b2a4c6cf, type: 3}
+  _icon: {fileID: 0}
+  _cost: 25
