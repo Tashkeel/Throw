@@ -2,11 +2,11 @@ using UnityEngine;
 
 /// <summary>
 /// Modifier that rewards throwing all high-value dice.
-/// "Perfectionist" - if every die shows 4 or higher, earn a flat bonus.
+/// "Perfectionist" — if every die shows 4 or higher, earn a flat bonus.
 /// Punishes single bad dice. Pairs well with BoostLowest enhancement.
 /// </summary>
 [CreateAssetMenu(fileName = "MOD_Perfectionist", menuName = "Dice Game/Modifiers/Perfectionist")]
-public class PerfectionistModifier : ModifierData
+public class PerfectionistModifier : ModifierData, IAfterThrowModifier
 {
     [Header("Perfectionist Settings")]
     [SerializeField]
@@ -19,21 +19,20 @@ public class PerfectionistModifier : ModifierData
 
     public override string Name => "Perfectionist";
     protected override string DefaultDescription => $"If every die shows {_threshold} or higher, earn +{_bonus} bonus points on that throw.";
-    public override ScoreModifierTiming Timing => ScoreModifierTiming.AfterThrow;
 
-    public override int ModifyScore(ScoreModifierContext context)
+    public int ApplyAfterThrow(AfterThrowContext ctx)
     {
-        if (context.AllDieValues == null || context.AllDieValues.Length == 0)
-            return context.CurrentScore;
+        if (ctx.RawDieValues == null || ctx.RawDieValues.Count == 0)
+            return ctx.TotalScore;
 
-        foreach (int value in context.AllDieValues)
+        foreach (int value in ctx.RawDieValues)
         {
             if (value < _threshold)
-                return context.CurrentScore;
+                return ctx.TotalScore;
         }
 
-        int newScore = context.CurrentScore + _bonus;
-        Debug.Log($"[Perfectionist] All {context.AllDieValues.Length} dice >= {_threshold}! +{_bonus} bonus. Score: {context.CurrentScore} -> {newScore}");
+        int newScore = ctx.TotalScore + _bonus;
+        Debug.Log($"[Perfectionist] All {ctx.RawDieValues.Count} dice >= {_threshold}! +{_bonus} bonus. Score: {ctx.TotalScore} -> {newScore}");
         return newScore;
     }
 }

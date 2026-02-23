@@ -1,14 +1,13 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
 /// Enhancement that rewards selecting multiple dice together.
-/// "Cascade" - select 3 dice; each die gains +1 per other die in the selection.
+/// "Cascade" — select 3 dice; each die gains +1 per other die in the selection.
 /// With 3 dice selected, every die gets +2 to all faces.
 /// Weaker per-die than Synergy but applies across 3 dice at once.
 /// </summary>
 [CreateAssetMenu(fileName = "ENH_Cascade", menuName = "Dice Game/Enhancements/Cascade")]
-public class CascadeEnhancement : EnhancementData
+public class CascadeEnhancement : MultiDiceEnhancementData
 {
     [System.NonSerialized]
     private int _bonusPerDie;
@@ -17,14 +16,14 @@ public class CascadeEnhancement : EnhancementData
     protected override string DefaultDescription => "Select 3 dice. Each die gets +1 to all faces per other selected die (+2 each with 3 dice).";
     public override int MaxDiceCount => 3;
 
-    public override void PreProcess(List<int[]> allSelectedDiceFaceValues)
+    protected override void OnPrepared(int[][] allValues)
     {
-        int count = allSelectedDiceFaceValues?.Count ?? 1;
+        int count = allValues?.Length ?? 1;
         _bonusPerDie = count - 1;
         Debug.Log($"[Cascade] {count} dice selected. Each will receive +{_bonusPerDie} to all faces.");
     }
 
-    public override int[] ApplyToDie(int[] currentValues)
+    protected override int[] ApplyWithContext(int[] currentValues)
     {
         if (currentValues == null) return null;
 

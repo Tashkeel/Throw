@@ -2,10 +2,10 @@ using UnityEngine;
 
 /// <summary>
 /// Abstract ScriptableObject base for all score modifiers.
-/// Subclass this and add [CreateAssetMenu] to create a modifier asset directly —
-/// no separate prefab or MonoBehaviour required.
+/// Subclass this, implement IPerDieModifier or IAfterThrowModifier, and add
+/// [CreateAssetMenu] to create a modifier asset directly — no separate prefab required.
 /// </summary>
-public abstract class ModifierData : ScriptableObject, IScoreModifier
+public abstract class ModifierData : ScriptableObject, IModifier
 {
     [Header("Shop")]
     [SerializeField] private Sprite _icon;
@@ -23,12 +23,10 @@ public abstract class ModifierData : ScriptableObject, IScoreModifier
     [Tooltip("Override the description shown in the shop. Leave blank to use the built-in default.")]
     private string _description = "";
 
-    // ── IScoreModifier ────────────────────────────────────────────────────────
+    // ── Identity ──────────────────────────────────────────────────────────────
     public abstract string Name { get; }
 
-    /// <summary>
-    /// Description shown in the shop. Editable per-asset in the Inspector.
-    /// </summary>
+    /// <summary>Description shown in the shop. Editable per-asset in the Inspector.</summary>
     public string Description => _description;
 
     /// <summary>
@@ -43,10 +41,6 @@ public abstract class ModifierData : ScriptableObject, IScoreModifier
             _description = DefaultDescription;
     }
 
-    public abstract ScoreModifierTiming Timing { get; }
-
-    public abstract int ModifyScore(ScoreModifierContext context);
-
     // ── Shop properties ───────────────────────────────────────────────────────
     /// <summary>Alias for Name — used by UI and shop code.</summary>
     public string DisplayName => Name;
@@ -57,13 +51,27 @@ public abstract class ModifierData : ScriptableObject, IScoreModifier
     // ── Lifecycle hooks ───────────────────────────────────────────────────────
     /// <summary>
     /// Called by ModifierManager when this modifier is purchased and made active.
-    /// Override to subscribe to GameEvents or reset per-run state.
+    /// Override to subscribe to GameEvents, store context, or reset per-run state.
+    /// The default implementation calls OnActivated() for backward compatibility.
     /// </summary>
-    public virtual void OnActivated() { }
+    public virtual void OnEquipped(IModifierContext ctx) { OnActivated(); }
 
     /// <summary>
     /// Called by ModifierManager when this modifier is sold or cleared.
     /// Override to unsubscribe from GameEvents.
+    /// The default implementation calls OnDeactivated() for backward compatibility.
+    /// </summary>
+    public virtual void OnUnequipped() { OnDeactivated(); }
+
+    /// <summary>
+    /// Deprecated — override OnEquipped(IModifierContext) instead.
+    /// Kept for backward compatibility during migration.
+    /// </summary>
+    public virtual void OnActivated() { }
+
+    /// <summary>
+    /// Deprecated — override OnUnequipped() instead.
+    /// Kept for backward compatibility during migration.
     /// </summary>
     public virtual void OnDeactivated() { }
 }

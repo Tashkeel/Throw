@@ -30,6 +30,10 @@ public class RoundManager : MonoBehaviour
     [SerializeField]
     private DiceManager _diceManager;
 
+    [SerializeField]
+    [Tooltip("ModifierManager that implements IScoringPipeline. Injected into DiceManager on Initialize.")]
+    private ModifierManager _modifierManager;
+
     private DiceInventory _inventory;
     private Hand _hand;
     private ScoreTracker _scoreTracker;
@@ -110,6 +114,10 @@ public class RoundManager : MonoBehaviour
         _scoreTracker = scoreTracker;
         _currencyManager = currencyManager;
         _hand = new Hand(inventory, _handSize);
+
+        // Wire scoring pipeline: DiceManager talks to ModifierManager only through IScoringPipeline
+        if (_diceManager != null && _modifierManager != null)
+            _diceManager.SetPipeline(_modifierManager);
     }
 
     private void Update()

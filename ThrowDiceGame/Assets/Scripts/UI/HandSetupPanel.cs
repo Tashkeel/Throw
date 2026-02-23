@@ -165,6 +165,8 @@ public class HandSetupPanel : UIPanel
 
     private IEnumerator AnimateScaleBump(Transform target)
     {
+        if (target == null) yield break;
+
         Vector3 baseScale = target.localScale;
         target.localScale = Vector3.zero;
 
@@ -175,6 +177,7 @@ public class HandSetupPanel : UIPanel
         while (elapsed < halfDuration)
         {
             elapsed += Time.deltaTime;
+            if (target == null) yield break;
             float t = Mathf.Clamp01(elapsed / halfDuration);
             // Ease-out quad for the upswing
             float scale = _drawBumpScale * (1f - (1f - t) * (1f - t));
@@ -188,6 +191,7 @@ public class HandSetupPanel : UIPanel
         while (elapsed < settleTime)
         {
             elapsed += Time.deltaTime;
+            if (target == null) yield break;
             float t = Mathf.Clamp01(elapsed / settleTime);
             // Ease-out quad for settle
             float scale = Mathf.Lerp(_drawBumpScale, 1f, t * t);
@@ -195,7 +199,8 @@ public class HandSetupPanel : UIPanel
             yield return null;
         }
 
-        target.localScale = baseScale;
+        if (target != null)
+            target.localScale = baseScale;
     }
 
     private void SetButtonsInteractable(bool interactable)

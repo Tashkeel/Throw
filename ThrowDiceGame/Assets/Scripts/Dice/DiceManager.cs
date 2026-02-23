@@ -4,7 +4,7 @@ using UnityEngine;
 
 /// <summary>
 /// Manages active dice, monitors their state via per-die rest events,
-/// applies modifiers progressively, and fires scoring events.
+/// applies modifiers progressively via IScoringPipeline, and fires scoring events.
 /// </summary>
 public class DiceManager : MonoBehaviour
 {
@@ -19,7 +19,10 @@ public class DiceManager : MonoBehaviour
     private int _diceAtRestCount;
     private int _runningTotal;
     private List<int> _settledValues = new List<int>();
+    private List<int> _perDieModifiedValues = new List<int>();
     private bool _monitoringActive;
+
+    private IScoringPipeline _pipeline;
 
     /// <summary>
     /// Event fired when all dice have come to rest. Provides total modified score.
@@ -36,30 +39,29 @@ public class DiceManager : MonoBehaviour
     /// </summary>
     public event Action<int, int> OnMoneyDieScored;
 
-    /// <summary>
-    /// Returns true if there are dice being tracked and we're waiting for them to settle.
-    /// </summary>
+    /// <summary>Returns true if there are dice being tracked and we're waiting for them to settle.</summary>
     public bool IsWaitingForRest => _isWaitingForRest;
 
-    /// <summary>
-    /// Returns true if the current roll has finished (all dice at rest and result calculated).
-    /// </summary>
+    /// <summary>Returns true if the current roll has finished (all dice at rest and result calculated).</summary>
     public bool RollFinished => _rollFinished;
 
-    /// <summary>
-    /// Returns a read-only list of all tracked dice.
-    /// </summary>
+    /// <summary>Returns a read-only list of all tracked dice.</summary>
     public IReadOnlyList<GameplayDie> TrackedDice => _trackedDice;
 
-    /// <summary>
-    /// The total score from the last completed roll.
-    /// </summary>
+    /// <summary>The total score from the last completed roll.</summary>
     public int LastRollTotal { get; private set; }
 
-    /// <summary>
-    /// The current running score total (before AfterThrow modifiers).
-    /// </summary>
+    /// <summary>The current running score total (before AfterThrow modifiers).</summary>
     public int RunningTotal => _runningTotal;
+
+    /// <summary>
+    /// Injects the scoring pipeline. Called by RoundManager.Initialize().
+    /// Decouples DiceManager from ModifierManager singleton.
+    /// </summary>
+    public void SetPipeline(IScoringPipeline pipeline)
+    {
+        _pipeline = pipeline;
+    }
 
     /// <summary>
     /// Sets throw context before a throw begins. Resets progressive scoring state.
@@ -72,6 +74,7 @@ public class DiceManager : MonoBehaviour
         _diceAtRestCount = 0;
         _runningTotal = 0;
         _settledValues.Clear();
+        _perDieModifiedValues.Clear();
         _rollFinished = false;
         _isWaitingForRest = true;
     }
@@ -86,15 +89,11 @@ public class DiceManager : MonoBehaviour
         foreach (var die in _trackedDice)
         {
             if (die != null)
-            {
                 die.StartMonitoringRest();
-            }
         }
     }
 
-    /// <summary>
-    /// Registers a die to be tracked by the manager.
-    /// </summary>
+    /// <summary>Registers a die to be tracked by the manager.</summary>
     public void RegisterDie(GameplayDie die)
     {
         if (die == null) return;
@@ -106,18 +105,12 @@ public class DiceManager : MonoBehaviour
             _isWaitingForRest = true;
             _rollFinished = false;
 
-            // If monitoring is already active (staggered spawn), start this die immediately
             if (_monitoringActive)
-            {
                 die.StartMonitoringRest();
-            }
-
         }
     }
 
-    /// <summary>
-    /// Unregisters a die from tracking.
-    /// </summary>
+    /// <summary>Unregisters a die from tracking.</summary>
     public void UnregisterDie(GameplayDie die)
     {
         if (die != null)
@@ -128,9 +121,7 @@ public class DiceManager : MonoBehaviour
         _trackedDice.Remove(die);
 
         if (_trackedDice.Count == 0)
-        {
             ResetState();
-        }
     }
 
     /// <summary>
@@ -151,9 +142,7 @@ public class DiceManager : MonoBehaviour
         ResetState();
     }
 
-    /// <summary>
-    /// Gets the individual die values from the last roll (settled values).
-    /// </summary>
+    /// <summary>Gets the individual die values from the last roll (settled values).</summary>
     public int[] GetLastRollValues()
     {
         return _settledValues.ToArray();
@@ -175,16 +164,14 @@ public class DiceManager : MonoBehaviour
         }
         else
         {
-            // Score die — apply modifiers and add to running total
+            // Score die — apply per-die modifiers and accumulate
             _settledValues.Add(rawValue);
 
-            int modifiedValue = rawValue;
-            if (ModifierManager.Instance != null)
-            {
-                modifiedValue = ModifierManager.Instance.ApplyPerDieModifiers(
-                    rawValue, dieIndex, _settledValues.ToArray(), _throwNumber, _roundNumber);
-            }
+            int modifiedValue = _pipeline != null
+                ? _pipeline.ProcessPerDie(rawValue, dieIndex, _settledValues, _throwNumber, _roundNumber)
+                : rawValue;
 
+            _perDieModifiedValues.Add(modifiedValue);
             _runningTotal += modifiedValue;
 
             OnDieScored?.Invoke(dieIndex, rawValue, modifiedValue);
@@ -192,22 +179,15 @@ public class DiceManager : MonoBehaviour
             Debug.Log($"Die {dieIndex} scored: raw={rawValue}, modified={modifiedValue} (running total: {_runningTotal})");
         }
 
-        // Check if all expected dice have settled
         if (_diceAtRestCount >= _expectedDiceCount)
-        {
             OnAllDiceSettled();
-        }
     }
 
     private void OnAllDiceSettled()
     {
-        // Apply after-throw modifiers to the running total
-        int finalTotal = _runningTotal;
-        if (ModifierManager.Instance != null)
-        {
-            finalTotal = ModifierManager.Instance.ApplyAfterThrowModifiers(
-                _runningTotal, _settledValues.ToArray(), _throwNumber, _roundNumber);
-        }
+        int finalTotal = _pipeline != null
+            ? _pipeline.ProcessAfterThrow(_runningTotal, _perDieModifiedValues, _settledValues, _throwNumber, _roundNumber)
+            : _runningTotal;
 
         _isWaitingForRest = false;
         _rollFinished = true;

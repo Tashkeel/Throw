@@ -5,7 +5,7 @@ using UnityEngine;
 /// Manages the player's currency (money) that can be spent in the shop.
 /// Money is earned after successful rounds and resets on game over.
 /// </summary>
-public class CurrencyManager
+public class CurrencyManager : ICurrencyManager
 {
     private int _currentMoney;
     private int _moneyPerDieRemaining;

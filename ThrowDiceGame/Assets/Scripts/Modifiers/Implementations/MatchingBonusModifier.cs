@@ -3,10 +3,10 @@ using UnityEngine;
 
 /// <summary>
 /// Modifier that gives bonus points for matching dice.
-/// "Pair Master" - rewards rolling pairs, triples, etc.
+/// "Pair Master" — rewards rolling pairs, triples, etc.
 /// </summary>
 [CreateAssetMenu(fileName = "MOD_PairMaster", menuName = "Dice Game/Modifiers/Pair Master")]
-public class MatchingBonusModifier : ModifierData
+public class MatchingBonusModifier : ModifierData, IAfterThrowModifier
 {
     [Header("Matching Bonus Settings")]
     [SerializeField]
@@ -23,15 +23,14 @@ public class MatchingBonusModifier : ModifierData
 
     public override string Name => "Pair Master";
     protected override string DefaultDescription => $"Bonus for matching dice: +{_pairBonus} pair, +{_tripleBonus} triple, +{_quadBonus} for 4+.";
-    public override ScoreModifierTiming Timing => ScoreModifierTiming.AfterThrow;
 
-    public override int ModifyScore(ScoreModifierContext context)
+    public int ApplyAfterThrow(AfterThrowContext ctx)
     {
-        if (context.AllDieValues == null || context.AllDieValues.Length < 2)
-            return context.CurrentScore;
+        if (ctx.RawDieValues == null || ctx.RawDieValues.Count < 2)
+            return ctx.TotalScore;
 
         var valueCounts = new Dictionary<int, int>();
-        foreach (int value in context.AllDieValues)
+        foreach (int value in ctx.RawDieValues)
         {
             if (valueCounts.ContainsKey(value))
                 valueCounts[value]++;
@@ -63,6 +62,6 @@ public class MatchingBonusModifier : ModifierData
         if (totalBonus > 0)
             Debug.Log($"[Pair Master] Total matching bonus: +{totalBonus}");
 
-        return context.CurrentScore + totalBonus;
+        return ctx.TotalScore + totalBonus;
     }
 }

@@ -1,11 +1,11 @@
 using UnityEngine;
 
 /// <summary>
-/// Sample modifier that doubles the score of dice showing 1.
-/// "Lucky Ones" - turns the lowest roll into a decent score.
+/// Modifier that doubles the score of dice showing 1.
+/// "Lucky Ones" — turns the lowest roll into a decent score.
 /// </summary>
 [CreateAssetMenu(fileName = "MOD_DoubleOnes", menuName = "Dice Game/Modifiers/Double Ones")]
-public class DoubleOnesModifier : ModifierData
+public class DoubleOnesModifier : ModifierData, IPerDieModifier
 {
     [Header("Double Ones Settings")]
     [SerializeField]
@@ -13,17 +13,15 @@ public class DoubleOnesModifier : ModifierData
 
     public override string Name => "Lucky Ones";
     protected override string DefaultDescription => "Dice showing 1 are worth double.";
-    public override ScoreModifierTiming Timing => ScoreModifierTiming.PerDie;
 
-    public override int ModifyScore(ScoreModifierContext context)
+    public int ApplyPerDie(PerDieContext ctx)
     {
-        if (context.OriginalValue == 1)
+        if (ctx.OriginalValue == 1)
         {
-            int newScore = context.CurrentScore * _multiplier;
-            Debug.Log($"[Lucky Ones] Die showing 1: {context.CurrentScore} -> {newScore}");
+            int newScore = ctx.CurrentValue * _multiplier;
+            Debug.Log($"[Lucky Ones] Die showing 1: {ctx.CurrentValue} -> {newScore}");
             return newScore;
         }
-
-        return context.CurrentScore;
+        return ctx.CurrentValue;
     }
 }

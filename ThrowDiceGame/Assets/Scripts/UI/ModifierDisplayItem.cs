@@ -156,7 +156,7 @@ public class ModifierDisplayItem : MonoBehaviour, IPointerEnterHandler, IPointer
 
         _nameText.text = _modifier.Name;
         _descriptionText.text = _modifier.Description;
-        _timingText.text = _modifier.Timing == ScoreModifierTiming.PerDie ? "Per Die" : "After Throw";
+        _timingText.text = _modifier is IPerDieModifier ? "Per Die" : "After Throw";
 
         if (_modifier.Icon != null)
         {
